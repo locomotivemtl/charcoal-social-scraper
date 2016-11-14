@@ -232,7 +232,7 @@ class InstagramScraper extends AbstractScraper implements
             $this->setResults($models);
         }
 
-        return $this->results;
+        return $this->results();
     }
 
     /**
