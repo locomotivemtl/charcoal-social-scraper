@@ -16,7 +16,7 @@
             "type": "string",
             "readonly": true
         },
-        "source": {
+        "network": {
             "type": "string",
             "allow_null": false
         },

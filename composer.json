@@ -30,7 +30,9 @@
     },
     "autoload": {
         "psr-4": {
-            "Charcoal\\SocialScraper\\": "src/Charcoal/SocialScraper"
+            "Charcoal\\Instagram\\": "src/Charcoal/Instagram",
+            "Charcoal\\SocialScraper\\": "src/Charcoal/SocialScraper",
+            "Charcoal\\Twitter\\": "src/Charcoal/Twitter"
         }
     },
     "scripts": {

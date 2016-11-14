@@ -16,22 +16,31 @@ use \Charcoal\Instagram\Object\User;
 use \Charcoal\SocialScraper\AbstractScraper;
 
 /**
- * Scraping class that connects to Instagram API and converts data to Charcoal Objects.
+ * Scraping class that connects to Instagram API and converts medias/users/tags to Charcoal Objects.
  */
 class InstagramScraper extends AbstractScraper implements
     ScraperInterface
 {
     /**
-     * @var array $results
+     * The social media network. Used by ScrapeRecord
+     *
+     * @var string
      */
-    private $results;
+    private $network = 'instagram';
 
     /**
      * @param InstagramClient $client The Instagram Client used to query the API.
+     * @throws Exception If the supplied client is not a proper InstagramClient.
      * @return self
      */
-    private function setClient(InstagramClient $client)
+    public function setClient($client)
     {
+        if (!$client instanceof InstagramClient) {
+            throw new Exception(
+                'The client must be an instance of \Larabros\Elogram\Client.'
+            );
+        }
+
         $this->client = $client;
 
         return $this;
@@ -43,7 +52,7 @@ class InstagramScraper extends AbstractScraper implements
      * @throws Exception If the Instagram client was not properly set.
      * @return InstagramClient
      */
-    protected function client()
+    public function client()
     {
         if ($this->client === null) {
             throw new Exception(
@@ -54,20 +63,10 @@ class InstagramScraper extends AbstractScraper implements
     }
 
     /**
-     * Retrieve results.
-     *
-     * @return ModelInterface[]|array|null
-     */
-    public function results()
-    {
-        return $this->results;
-    }
-
-    /**
      * Scrape Instagram API according to hashtag.
      *
      * @param  string $tag The searched tag.
-     * @throws InvalidArgumentException If the query is not a string.
+     * @throws InvalidArgumentException If the query is not a string or is empty.
      * @return ModelInterface[]|null
      */
     public function scrapeByTag($tag)
@@ -85,12 +84,9 @@ class InstagramScraper extends AbstractScraper implements
         }
 
         return $this->scrapeMedia([
-            'record' => [
-                'source' => 'instagram',
-                'repository' => 'tags',
-                'method' => 'getRecentMedia',
-                'filter' => $tag
-            ]
+            'repository' => 'tags',
+            'method' => 'getRecentMedia',
+            'filter' => $tag
         ]);
     }
 
@@ -102,36 +98,35 @@ class InstagramScraper extends AbstractScraper implements
     public function scrapeAll()
     {
         return $this->scrapeMedia([
-            'record' => [
-                'source' => 'instagram',
-                'repository' => 'users',
-                'method' => 'getMedia',
-                'filter' => 'self'
-            ]
+            'repository' => 'users',
+            'method' => 'getMedia',
+            'filter' => 'self'
         ]);
     }
 
     /**
      * Scrape Instagram API and parse scraped data to create Charcoal models.
      *
-     * @param  string $tag The searched tag.
-     * @param  array  $data  Raw API data.
-     * @throws InvalidArgumentException If the query is not a string.
+     * @param  array  $options  Raw API data.
+     * @throws Exception If something goes wrong with API calls.
      * @return ModelInterface[]|null
      */
     private function scrapeMedia(array $options = [])
     {
-        if ($this->results === null) {
+        if ($this->results() === null) {
+
+            //@todo This seems clumsy.
+            $config = [ 'recordOptions' => $options ];
+            $config['recordOptions']['network'] = $this->network();
+            $this->setConfig($config);
+
             // Test for recent scrapes
-            $record = $this->fetchRecentScrapeRecord($options['record']);
+            $record = $this->fetchRecentScrapeRecord();
 
             // An non-null ID means a recent record exists
             if ($record->id() !== null) {
-                return $this->results;
+                return $this->results();
             }
-
-            // Reset results
-            $this->results = [];
 
             $callApi = true;
             $max = $min = null;
@@ -141,7 +136,7 @@ class InstagramScraper extends AbstractScraper implements
             // First, attempt fetching Instagram data through pagination
             try {
                 while ($callApi) {
-                    $apiResponse = $this->instagramClient()->{$options['repository']}()->{$options['method']}($options['filter'], 32, $min, $max);
+                    $apiResponse = $this->client()->{$options['repository']}()->{$options['method']}($options['filter'], 32, $min, $max);
 
                     $rawMedias = $apiResponse->get()->merge($rawMedias);
 
@@ -234,10 +229,19 @@ class InstagramScraper extends AbstractScraper implements
                 $models[] = $mediaModel;
             }
 
-            $this->results = $models;
-
+            $this->setResults($models);
         }
 
         return $this->results;
+    }
+
+    /**
+     * Retrieve the social media network.
+     *
+     * @return string
+     */
+    public function network()
+    {
+        return $this->network;
     }
 }

@@ -29,15 +29,20 @@ abstract class AbstractScraper
     private $client;
 
     /**
+     * @var array $results
+     */
+    private $results;
+
+    /**
      * Default configuration.
      *
      * @var array $config
      */
     private $config = [
         'record' => true,
-        'recordExpires' => '1 hour'
+        'recordExpires' => '1 hour',
         'recordOptions' => [
-            'source' => '',
+            'network' => '',
             'repository' => '',
             'method' => '',
             'filter' => ''
@@ -83,17 +88,17 @@ abstract class AbstractScraper
      * @throws Exception If the required arguments are not supplied.
      * @return ModelInterface  A ScrapeRecord instance.
      */
-    private function fetchRecentScrapeRecord()
+    public function fetchRecentScrapeRecord()
     {
         $config = $this->config();
         $recordOptions = $config['recordOptions'];
 
         // Required values
         if (
-            empty($recordOption['source']) ||
-            empty($recordOption['repository']) ||
-            empty($recordOption['method']) ||
-            empty($recordOption['filter'])
+            empty($recordOptions['network']) ||
+            empty($recordOptions['repository']) ||
+            empty($recordOptions['method']) ||
+            empty($recordOptions['filter'])
         ) {
             throw new Exception(
                 'Can not create a ScrapeRecord, the config has not been properly set.'
@@ -104,10 +109,10 @@ abstract class AbstractScraper
         $proto = $this->modelFactory()
             ->create(ScrapeRecord::class)
             ->setData([
-                'source' => $recordOption['source'],
-                'repository' => $recordOption['repository'],
-                'method' => $recordOption['method'],
-                'filter' => $recordOption['filter']
+                'network' => $recordOptions['network'],
+                'repository' => $recordOptions['repository'],
+                'method' => $recordOptions['method'],
+                'filter' => $recordOptions['filter']
             ]);
 
         if (!$proto->source()->tableExists()) {
@@ -136,6 +141,29 @@ abstract class AbstractScraper
     }
 
     /**
+     * Retrieve results.
+     *
+     * @return ModelInterface[]|array|null
+     */
+    public function results()
+    {
+        return $this->results;
+    }
+
+    /**
+     * Set results.
+     *
+     * @param ModelInterface[]|array|null
+     * @return self
+     */
+    public function setResults($results)
+    {
+        $this->results = $results;
+
+        return $this;
+    }
+
+    /**
      * Merge defaults with supplied parameters.
      *
      * @param array $config New config values.
@@ -145,7 +173,7 @@ abstract class AbstractScraper
     {
         $this->config = array_replace_recursive($this->config, $config);
 
-        return self;
+        return $this;
     }
 
     /**

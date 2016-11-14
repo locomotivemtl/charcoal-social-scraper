@@ -27,7 +27,7 @@ class ScrapeRecord extends AbstractModel
      *
      * @var string
      */
-    protected $source;
+    protected $network;
 
     /**
      * The scrape record repository.
@@ -65,7 +65,7 @@ class ScrapeRecord extends AbstractModel
     public function generateIdent()
     {
         $ident = [
-            $this->source(),
+            $this->network(),
             $this->repository(),
             $this->method(),
             $this->filter()
@@ -104,33 +104,33 @@ class ScrapeRecord extends AbstractModel
     }
 
     /**
-     * Set the scrape source.
+     * Set the scrape network.
      *
-     * @param  string $source The social network identifier.
-     * @throws InvalidArgumentException If the source is not a string.
+     * @param  string $network The social network identifier.
+     * @throws InvalidArgumentException If the network is not a string.
      * @return ScrapeRecord Chainable
      */
-    public function setSource($source)
+    public function setNetwork($network)
     {
-        if (!is_string($source)) {
+        if (!is_string($network)) {
             throw new InvalidArgumentException(
-                'Source must be a string'
+                'Network must be a string.'
             );
         }
 
-        $this->source = $source;
+        $this->network = $network;
 
         return $this;
     }
 
     /**
-     * Retrieve the source name.
+     * Retrieve the network name.
      *
      * @return string
      */
-    public function source()
+    public function network()
     {
-        return $this->source;
+        return $this->network;
     }
 
     /**
@@ -144,7 +144,7 @@ class ScrapeRecord extends AbstractModel
     {
         if (!is_string($repository)) {
             throw new InvalidArgumentException(
-                'Repository must be a string'
+                'Repository must be a string.'
             );
         }
 
@@ -174,7 +174,7 @@ class ScrapeRecord extends AbstractModel
     {
         if (!is_string($method)) {
             throw new InvalidArgumentException(
-                'Method must be a string'
+                'Method must be a string.'
             );
         }
 
@@ -204,7 +204,7 @@ class ScrapeRecord extends AbstractModel
     {
         if (!is_string($filter)) {
             throw new InvalidArgumentException(
-                'Filter must be a string'
+                'Filter must be a string.'
             );
         }
 
