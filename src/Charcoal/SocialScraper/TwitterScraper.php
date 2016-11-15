@@ -83,17 +83,6 @@ class TwitterScraper extends AbstractScraper implements
             );
         }
 
-        // $data = $this->client()->get($options['repository'] . '/' . $options['method'], [
-        //     // 'q' => '#ufootball',
-        //     // 'q' => '#Vanier52',
-        //     'include_entities' => true,
-        //     // 'q' => 'from:' . $this->appConfig['twitter.user_id'],
-        //     // 'q' => '#Vanier52 AND from:' . $this->appConfig['twitter.user_id'],
-        //     // 'q' => '#ufootball AND from:' . $this->appConfig['twitter.user_id'],
-        //     'q' => '#ufootball AND from:usportsca',
-        //     'count' => 40
-        // ]);
-
         return $this->scrapeTweets([
             'repository' => 'search',
             'method' => 'tweets',
@@ -112,11 +101,6 @@ class TwitterScraper extends AbstractScraper implements
      */
     public function scrapeAll()
     {
-        // $data = $this->twitterConnection()->get('statuses/user_timeline', [
-        //     'screen_name' => $this->appConfig['twitter.user_id'],
-        //     // 'count' => 5
-        // ]);
-
         return $this->scrapeTweets([
             'repository' => 'statuses',
             'method' => 'user_timeline',

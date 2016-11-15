@@ -217,7 +217,7 @@ class Tweet extends AbstractModel implements
      */
     public function setContent($content)
     {
-        $this->content = $this->linkifyTwitterStatus($content);
+        $this->content = $content;
 
         return $this;
     }
@@ -286,5 +286,36 @@ class Tweet extends AbstractModel implements
     public function url()
     {
         return self::URL_USER . $this->handle() . '/status/' . $this->id();
+    }
+
+    // Events
+    // =================================================================================================================
+
+    /**
+     * Event called before _creating_ the object.
+     *
+     * @see    \Charcoal\Source\StorableTrait::preSave() For the "create" Event.
+     * @return boolean
+     */
+    public function preSave()
+    {
+        $this->setContent($this->linkifyTwitterStatus($this->content()));
+
+        return parent::preSave();
+    }
+
+    /**
+     * Event called before _updating_ the object.
+     *
+     * @see    \Charcoal\Source\StorableTrait::postUpdate() For the "update" Event.
+     * @see    \Charcoal\Object\RoutableTrait::generateObjectRoute()
+     * @param  array $properties Optional. The list of properties to update.
+     * @return boolean
+     */
+    public function preUpdate(array $properties = null)
+    {
+        $this->setContent($this->linkifyTwitterStatus($this->content()));
+
+        return parent::preUpdate($properties);
     }
 }
