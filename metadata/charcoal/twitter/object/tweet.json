@@ -1,33 +1,52 @@
 {
     "sources": {
-        "charcoal.instagram.tag": {
+        "charcoal.twitter.tweet": {
             "type": "database",
-            "table": "charcoal_instagram_tags"
+            "table": "charcoal_twitter_tweets"
         }
     },
-    "default_source": "charcoal.instagram.tag",
+    "default_source": "charcoal.twitter.tweet",
 
     "labels": {
-        "name": "Instagram Tags",
-        "singular_name": "Instagram Tag",
+        "name": "Tweets",
+        "singular_name": "Tweet",
         "edit_item": {
-            "en": "Edit Tag",
-            "fr": "Modifier le tag"
+            "en": "Edit Tweet",
+            "fr": "Modifier le Tweet"
         },
         "all_items": {
-            "en": "All Instagram Tags",
-            "fr": "Toutes les tags Instagram"
+            "en": "All Tweets",
+            "fr": "Toutes les Tweets"
         },
-        "menu_items": "Instagram Tags"
+        "menu_items": "Tweets"
     },
 
     "properties": {
         "id": {
             "type": "id",
-            "mode": "custom"
+            "mode": "uuid"
         },
         "active": {
             "type": "boolean"
+        },
+        "created": {
+            "type": "date-time",
+            "input_type": "charcoal/admin/property/input/readonly"
+        },
+        "tags": {
+            "type": "object",
+            "obj_type": "charcoal/twitter/object/tag",
+            "multiple": true
+        },
+        "content": {
+            "type": "text"
+        },
+        "user": {
+            "type": "object",
+            "obj_type": "charcoal/twitter/object/user"
+        },
+        "json": {
+            "type": "structure"
         }
     },
 
@@ -35,8 +54,9 @@
         "lists": {
             "default": {
                 "properties": [
-                    "id",
-                    "active"
+                    "created",
+                    "user",
+                    "tags"
                 ],
                 "list_actions": [],
                 "properties_options": {}
@@ -53,12 +73,19 @@
                         "show_header": false,
                         "layout": {
                             "structure": [
-                                { "columns": [ 1, 1 ] }
+                                { "columns": [ 1, 2 ] },
+                                { "columns": [ 2, 1 ] },
+                                { "columns": [ 1 ] },
+                                { "columns": [ 1 ] }
                             ]
                         },
                         "properties": [
                             "id",
-                            "active"
+                            "user",
+                            "created",
+                            "active",
+                            "tags",
+                            "caption"
                         ]
                     }
                 },
@@ -83,13 +110,13 @@
                         "priority": 10,
                         "type": "charcoal/admin/widget/objectForm",
                         "form_ident": "default",
-                        "obj_type": "charcoal/instagram/object/tag",
+                        "obj_type": "charcoal/twitter/object/tweet",
                         "group_display_mode": "tab"
                     }
                 },
                 "sidemenu": {
                     "widget_options": {
-                        "ident": "instagram"
+                        "ident": "twitter"
                     }
                 }
             },
@@ -103,13 +130,13 @@
                     "list": {
                         "type": "charcoal/admin/widget/table",
                         "collection_ident": "default",
-                        "obj_type": "charcoal/instagram/object/tag",
+                        "obj_type": "charcoal/twitter/object/tweet",
                         "data_sources": [ "request" ]
                     }
                 },
                 "sidemenu": {
                     "widget_options": {
-                        "ident": "instagram"
+                        "ident": "twitter"
                     }
                 }
             }

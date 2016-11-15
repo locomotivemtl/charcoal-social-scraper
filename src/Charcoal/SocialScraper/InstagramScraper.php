@@ -86,7 +86,9 @@ class InstagramScraper extends AbstractScraper implements
         return $this->scrapeMedia([
             'repository' => 'tags',
             'method' => 'getRecentMedia',
-            'filter' => $tag
+            'filters' => [
+                'tag' => $tag
+            ]
         ]);
     }
 
@@ -100,21 +102,22 @@ class InstagramScraper extends AbstractScraper implements
         return $this->scrapeMedia([
             'repository' => 'users',
             'method' => 'getMedia',
-            'filter' => 'self'
+            'filters' => [
+                'id' => 'self'
+            ]
         ]);
     }
 
     /**
      * Scrape Instagram API and parse scraped data to create Charcoal models.
      *
-     * @param  array  $options  Raw API data.
+     * @param  array  $options  Scraping options.
      * @throws Exception If something goes wrong with API calls.
      * @return ModelInterface[]|null
      */
     private function scrapeMedia(array $options = [])
     {
-        if ($this->results() === null) {
-
+        if ($this->results === null) {
             //@todo This seems clumsy.
             $config = [ 'recordOptions' => $options ];
             $config['recordOptions']['network'] = $this->network();
@@ -125,7 +128,7 @@ class InstagramScraper extends AbstractScraper implements
 
             // An non-null ID means a recent record exists
             if ($record->id() !== null) {
-                return $this->results();
+                return $this->results;
             }
 
             $callApi = true;
@@ -133,10 +136,12 @@ class InstagramScraper extends AbstractScraper implements
             $rawMedias = [];
             $models = [];
 
+            $filters = $options['filters'];
+
             // First, attempt fetching Instagram data through pagination
             try {
                 while ($callApi) {
-                    $apiResponse = $this->client()->{$options['repository']}()->{$options['method']}($options['filter'], 32, $min, $max);
+                    $apiResponse = $this->client()->{$options['repository']}()->{$options['method']}(current($filters), 32, $min, $max);
 
                     $rawMedias = $apiResponse->get()->merge($rawMedias);
 
@@ -232,7 +237,7 @@ class InstagramScraper extends AbstractScraper implements
             $this->setResults($models);
         }
 
-        return $this->results();
+        return $this->results;
     }
 
     /**

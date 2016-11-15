@@ -44,11 +44,11 @@ class ScrapeRecord extends AbstractModel
     protected $method;
 
     /**
-     * The scrape record filter.
+     * The scrape record filters.
      *
      * @var string
      */
-    protected $filter;
+    protected $filters;
 
     /**
      * Timestamp of the scrape request.
@@ -68,7 +68,7 @@ class ScrapeRecord extends AbstractModel
             $this->network(),
             $this->repository(),
             $this->method(),
-            $this->filter()
+            $this->filters()
         ];
         return strtolower(implode('/', $ident));
     }
@@ -194,33 +194,29 @@ class ScrapeRecord extends AbstractModel
     }
 
     /**
-     * Set the scrape filter.
+     * Set the scrape filters as key:value pairs.
      *
      * @param  string $filter The filter name.
      * @throws InvalidArgumentException If the filter is not a string.
      * @return ScrapeRecord Chainable
      */
-    public function setFilter($filter)
+    public function setFilters($filters)
     {
-        if (!is_string($filter)) {
-            throw new InvalidArgumentException(
-                'Filter must be a string.'
-            );
+        if (is_array($filters)) {
+            $this->filters = json_encode($filters);
         }
-
-        $this->filter = $filter;
 
         return $this;
     }
 
     /**
-     * Retrieve the filter name.
+     * Retrieve the scrape record filters.
      *
      * @return string
      */
-    public function filter()
+    public function filters()
     {
-        return $this->filter;
+        return $this->filters;
     }
 
     /**

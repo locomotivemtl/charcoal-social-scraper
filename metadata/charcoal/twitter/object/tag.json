@@ -1,24 +1,24 @@
 {
     "sources": {
-        "charcoal.instagram.tag": {
+        "charcoal.twitter.tag": {
             "type": "database",
-            "table": "charcoal_instagram_tags"
+            "table": "charcoal_twitter_tags"
         }
     },
-    "default_source": "charcoal.instagram.tag",
+    "default_source": "charcoal.twitter.tag",
 
     "labels": {
-        "name": "Instagram Tags",
-        "singular_name": "Instagram Tag",
+        "name": "Twitter Tags",
+        "singular_name": "Twitter Tag",
         "edit_item": {
             "en": "Edit Tag",
             "fr": "Modifier le tag"
         },
         "all_items": {
-            "en": "All Instagram Tags",
-            "fr": "Toutes les tags Instagram"
+            "en": "All Twitter Tags",
+            "fr": "Toutes les tags Twitter"
         },
-        "menu_items": "Instagram Tags"
+        "menu_items": "Twitter Tags"
     },
 
     "properties": {
@@ -83,13 +83,13 @@
                         "priority": 10,
                         "type": "charcoal/admin/widget/objectForm",
                         "form_ident": "default",
-                        "obj_type": "charcoal/instagram/object/tag",
+                        "obj_type": "charcoal/twitter/object/tag",
                         "group_display_mode": "tab"
                     }
                 },
                 "sidemenu": {
                     "widget_options": {
-                        "ident": "instagram"
+                        "ident": "twitter"
                     }
                 }
             },
@@ -103,13 +103,13 @@
                     "list": {
                         "type": "charcoal/admin/widget/table",
                         "collection_ident": "default",
-                        "obj_type": "charcoal/instagram/object/tag",
+                        "obj_type": "charcoal/twitter/object/tag",
                         "data_sources": [ "request" ]
                     }
                 },
                 "sidemenu": {
                     "widget_options": {
-                        "ident": "instagram"
+                        "ident": "twitter"
                     }
                 }
             }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Charcoal\Instagram\Object;
+namespace Charcoal\Twitter\Object;
 
 use \DateTime;
 use \DateTimeInterface;
@@ -10,7 +10,7 @@ use \InvalidArgumentException;
 use \Charcoal\Model\AbstractModel;
 
 /**
- * Instagram Tag Object
+ * Twitter Tag Object
  */
 class User extends AbstractModel
 {
@@ -22,18 +22,18 @@ class User extends AbstractModel
     protected $active = true;
 
     /**
-     * The object's username.
+     * The object's name.
      *
      * @var string|null
      */
-    protected $username;
+    protected $name;
 
     /**
-     * The object's full name.
+     * The object's handle.
      *
      * @var string|null
      */
-    protected $fullName;
+    protected $handle;
 
     /**
      * The path to the object's profile picture.
@@ -43,9 +43,9 @@ class User extends AbstractModel
     protected $profilePicture;
 
     /**
-     * @const URL_USER  The base URI to an Instagram user profile.
+     * @const URL_USER  The base URI to a Twitter user profile.
      */
-    const URL_USER  = 'https://www.instagram.com/';
+    const URL_USER  = 'https://www.twitter.com/';
 
     // Setters and getters
     // =================================================================================================================
@@ -70,49 +70,49 @@ class User extends AbstractModel
     }
 
     /**
-     * Retrieve the object's username.
+     * Retrieve the object's name.
      *
-     * @param string $username The displayed username.
+     * @param string $name The displayed name.
      * @return self
      */
-    public function setUsername($username)
+    public function setName($name)
     {
-        $this->username = $username;
+        $this->name = $name;
 
         return $this;
     }
 
     /**
-     * Retrieve the object's username.
+     * Retrieve the object's name.
      *
      * @return string
      */
-    public function username()
+    public function name()
     {
-        return $this->username;
+        return $this->name;
     }
 
     /**
-     * Retrieve the object's full name.
+     * Retrieve the object's handle.
      *
-     * @param string $fullName A full name.
+     * @param string $handle A handle.
      * @return self
      */
-    public function setFullName($fullName)
+    public function setHandle($handle)
     {
-        $this->fullName = $fullName;
+        $this->handle = $handle;
 
         return $this;
     }
 
     /**
-     * Retrieve the object's full name.
+     * Retrieve the object's handle.
      *
      * @return string
      */
-    public function fullName()
+    public function handle()
     {
-        return $this->fullName;
+        return $this->handle;
     }
 
     /**
@@ -121,7 +121,7 @@ class User extends AbstractModel
      * @param string $profilePicture A path to an image.
      * @return self
      */
-    public function setProfilePicture($profilePicture)
+    public function setprofilePicture($profilePicture)
     {
         $this->profilePicture = $profilePicture;
 
@@ -145,6 +145,6 @@ class User extends AbstractModel
      */
     public function url()
     {
-        return self::URL_USER . $this->username();
+        return self::URL_USER . $this->handle();
     }
 }

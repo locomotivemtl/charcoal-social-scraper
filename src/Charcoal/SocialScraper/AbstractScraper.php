@@ -21,17 +21,24 @@ abstract class AbstractScraper
     /**
      * @var FactoryInterface $modelFactory
      */
-    private $modelFactory;
+    protected $modelFactory;
+
+    /**
+     * The project configuration container.
+     *
+     * @var \Charcoal\Config\ConfigInterface|null;
+     */
+    protected $appConfig;
 
     /**
      * @var mixed $client
      */
-    private $client;
+    protected $client;
 
     /**
      * @var array $results
      */
-    private $results;
+    protected $results;
 
     /**
      * Default configuration.
@@ -55,8 +62,9 @@ abstract class AbstractScraper
      */
     public function __construct(array $data)
     {
-        $this->setModelFactory($data['model_factory']);
+        $this->appConfig = $data['config'];
         $this->setClient($data['client']);
+        $this->setModelFactory($data['model_factory']);
     }
 
     /**
@@ -98,7 +106,7 @@ abstract class AbstractScraper
             empty($recordOptions['network']) ||
             empty($recordOptions['repository']) ||
             empty($recordOptions['method']) ||
-            empty($recordOptions['filter'])
+            empty($recordOptions['filters'])
         ) {
             throw new Exception(
                 'Can not create a ScrapeRecord, the config has not been properly set.'
@@ -112,7 +120,7 @@ abstract class AbstractScraper
                 'network' => $recordOptions['network'],
                 'repository' => $recordOptions['repository'],
                 'method' => $recordOptions['method'],
-                'filter' => $recordOptions['filter']
+                'filters' => $recordOptions['filters']
             ]);
 
         if (!$proto->source()->tableExists()) {

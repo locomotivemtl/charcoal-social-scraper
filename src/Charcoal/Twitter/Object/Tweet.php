@@ -1,6 +1,6 @@
 <?php
 
-namespace Charcoal\Instagram\Object;
+namespace Charcoal\Twitter\Object;
 
 use \DateTime;
 use \DateTimeInterface;
@@ -20,14 +20,14 @@ use \Charcoal\Support\Container\DependentInterface;
 use \Charcoal\Support\Model\ManufacturableModelTrait;
 use \Charcoal\Support\Model\ManufacturableModelCollectionTrait;
 
-// From `charcoal-instagram`
-use \Charcoal\Instagram\Object\Tag;
-use \Charcoal\Instagram\Object\User;
+// From `charcoal-social-scraper`
+use \Charcoal\Twitter\Object\Tag;
+use \Charcoal\Twitter\Object\User;
 
 /**
- * Instagram Media Object
+ * Twitter Tweet Object
  */
-class Media extends AbstractModel implements
+class Tweet extends AbstractModel implements
     DependentInterface
 {
     use ManufacturableModelTrait;
@@ -55,11 +55,11 @@ class Media extends AbstractModel implements
     protected $tags;
 
     /**
-     * The object's caption for the media (provided by third-party).
+     * The object's content (provided by third-party).
      *
      * @var string|null
      */
-    protected $caption;
+    protected $content;
 
     /**
      * User object that created the media (provided by third-party).
@@ -69,25 +69,16 @@ class Media extends AbstractModel implements
     protected $user;
 
     /**
-     * The main media source chosen for the object.
-     *
-     * @var string|null
-     */
-    protected $image;
-
-    /**
-     * The main media type. Differentiates between an image and video (provided by third-party).
-     *
-     * @var string|null
-     */
-    protected $type;
-
-    /**
      * The object's JSON representation/backup as provided by third-party when saved.
      *
      * @var string|null
      */
     protected $json;
+
+    /**
+     * @const URL_USER  The base URI to a Twitter user profile.
+     */
+    const URL_USER  = 'https://www.twitter.com/';
 
     /**
      * Inject dependencies from a DI Container.
@@ -102,6 +93,39 @@ class Media extends AbstractModel implements
         $this->setCollectionLoader($container['model/collection/loader']);
         $this->setCollectionLoaderFactory($container['model/collection/loader/factory']);
         $this->setModelFactory($container['model/factory']);
+    }
+
+    /**
+     * Function that will turn all HTTP URLs, Twitter @usernames, and #tags into links.
+     *
+     * @see  https://davidwalsh.name/linkify-twitter-feed
+     * @param  string $text Tweet object->text
+     * @return string
+     */
+    public function linkifyTwitterStatus($content)
+    {
+        // Linkify URLs
+        $content = preg_replace(
+            '/(https?:\/\/\S+)/',
+            '<a target="_blank" href="\1">\1</a>',
+            $content
+        );
+
+        // Linkify twitter users
+        $content = preg_replace(
+            '/(^|\s)@(\w+)/',
+            '\1@<a target="_blank" href="https://twitter.com/\2">\2</a>',
+            $content
+        );
+
+        // Linkify tags
+        $content = preg_replace(
+            '/(^|\s)#(\w+)/',
+            '\1#<a target="_blank" href="https://search.twitter.com/search?q=%23\2">\2</a>',
+            $content
+        );
+
+        return $content;
     }
 
     // Setters and getters
@@ -186,26 +210,26 @@ class Media extends AbstractModel implements
     }
 
     /**
-     * Set the object's caption.
+     * Set the object's content.
      *
-     * @param  string|null $caption The caption.
+     * @param  string|null $content The content.
      * @return self
      */
-    public function setCaption($caption)
+    public function setContent($content)
     {
-        $this->caption = $caption;
+        $this->content = $this->linkifyTwitterStatus($content);
 
         return $this;
     }
 
     /**
-     * Retrieve the object's caption.
+     * Retrieve the object's content.
      *
      * @return string|null
      */
-    public function caption()
+    public function content()
     {
-        return $this->caption;
+        return $this->content;
     }
 
     /**
@@ -229,52 +253,6 @@ class Media extends AbstractModel implements
     public function user()
     {
         return $this->user;
-    }
-
-    /**
-     * Retrieve the object's image.
-     *
-     * @param string $image The main image/video.
-     * @return self
-     */
-    public function setImage($image)
-    {
-        $this->image = $image;
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the object's image.
-     *
-     * @return string
-     */
-    public function image()
-    {
-        return $this->image;
-    }
-
-    /**
-     * Set the object's media type.
-     *
-     * @param string $type Either `image` or `video`.
-     * @return self
-     */
-    public function setType($type)
-    {
-        $this->type = $type;
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the object's media type.
-     *
-     * @return string
-     */
-    public function type()
-    {
-        return $this->type;
     }
 
     /**
@@ -307,6 +285,6 @@ class Media extends AbstractModel implements
      */
     public function url()
     {
-        return json_decode($this->structure())->link;
+        return self::URL_USER . $this->handle() . '/status/' . $this->id();
     }
 }

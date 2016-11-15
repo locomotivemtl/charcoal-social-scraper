@@ -1,30 +1,40 @@
 {
     "sources": {
-        "charcoal.instagram.tag": {
+        "charcoal.twitter.user": {
             "type": "database",
-            "table": "charcoal_instagram_tags"
+            "table": "charcoal_twitter_users"
         }
     },
-    "default_source": "charcoal.instagram.tag",
+    "default_source": "charcoal.twitter.user",
 
     "labels": {
-        "name": "Instagram Tags",
-        "singular_name": "Instagram Tag",
+        "name": "Twitter Users",
+        "singular_name": "Twitter User",
         "edit_item": {
-            "en": "Edit Tag",
-            "fr": "Modifier le tag"
+            "en": "Edit User",
+            "fr": "Modifier l'utilisateur"
         },
         "all_items": {
-            "en": "All Instagram Tags",
-            "fr": "Toutes les tags Instagram"
+            "en": "All Twitter Users",
+            "fr": "Toutes les utilisateur Twitter"
         },
-        "menu_items": "Instagram Tags"
+        "menu_items": "Twitter Users"
     },
 
     "properties": {
         "id": {
             "type": "id",
-            "mode": "custom"
+            "mode": "uuid",
+            "readonly": true
+        },
+        "name": {
+            "type": "string"
+        },
+        "handle": {
+            "type": "string"
+        },
+        "profile_picture": {
+            "type": "string"
         },
         "active": {
             "type": "boolean"
@@ -35,7 +45,8 @@
         "lists": {
             "default": {
                 "properties": [
-                    "id",
+                    "name",
+                    "handle",
                     "active"
                 ],
                 "list_actions": [],
@@ -53,11 +64,16 @@
                         "show_header": false,
                         "layout": {
                             "structure": [
-                                { "columns": [ 1, 1 ] }
+                                { "columns": [ 1, 1 ] },
+                                { "columns": [ 1, 1 ] },
+                                { "columns": [ 1 ] }
                             ]
                         },
                         "properties": [
                             "id",
+                            "name",
+                            "handle",
+                            "profile_picture",
                             "active"
                         ]
                     }
@@ -83,13 +99,13 @@
                         "priority": 10,
                         "type": "charcoal/admin/widget/objectForm",
                         "form_ident": "default",
-                        "obj_type": "charcoal/instagram/object/tag",
+                        "obj_type": "charcoal/twitter/object/user",
                         "group_display_mode": "tab"
                     }
                 },
                 "sidemenu": {
                     "widget_options": {
-                        "ident": "instagram"
+                        "ident": "twitter"
                     }
                 }
             },
@@ -103,13 +119,13 @@
                     "list": {
                         "type": "charcoal/admin/widget/table",
                         "collection_ident": "default",
-                        "obj_type": "charcoal/instagram/object/tag",
+                        "obj_type": "charcoal/twitter/object/user",
                         "data_sources": [ "request" ]
                     }
                 },
                 "sidemenu": {
                     "widget_options": {
-                        "ident": "instagram"
+                        "ident": "twitter"
                     }
                 }
             }

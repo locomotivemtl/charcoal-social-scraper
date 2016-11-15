@@ -117,7 +117,7 @@
                 },
                 "widgets": {
                     "list": {
-                        "type": "charcoal/support/admin/widget/table",
+                        "type": "charcoal/admin/widget/table",
                         "collection_ident": "default",
                         "obj_type": "charcoal/instagram/object/user",
                         "data_sources": [ "request" ]
