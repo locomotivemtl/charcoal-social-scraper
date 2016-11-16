@@ -47,6 +47,16 @@ class User extends AbstractModel
      */
     const URL_USER  = 'https://www.twitter.com/';
 
+    /**
+     * Simple concat of @ and handle
+     *
+     * @return string
+     */
+    public function via()
+    {
+        return '@'.$this->handle();
+    }
+
     // Setters and getters
     // =================================================================================================================
 

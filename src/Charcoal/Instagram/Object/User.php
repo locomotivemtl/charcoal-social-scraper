@@ -47,6 +47,16 @@ class User extends AbstractModel
      */
     const URL_USER  = 'https://www.instagram.com/';
 
+    /**
+     * Simple concat of @ and username
+     *
+     * @return string
+     */
+    public function via()
+    {
+        return '@'.$this->username();
+    }
+
     // Setters and getters
     // =================================================================================================================
 

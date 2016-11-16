@@ -19,6 +19,7 @@ use \Charcoal\Model\AbstractModel;
 use \Charcoal\Support\Container\DependentInterface;
 use \Charcoal\Support\Model\ManufacturableModelTrait;
 use \Charcoal\Support\Model\ManufacturableModelCollectionTrait;
+use \Charcoal\Support\Property\ParsableValueTrait;
 
 // From `charcoal-social-scraper`
 use \Charcoal\Twitter\Object\Tag;
@@ -32,6 +33,7 @@ class Tweet extends AbstractModel implements
 {
     use ManufacturableModelTrait;
     use ManufacturableModelCollectionTrait;
+    use ParsableValueTrait;
 
     /**
      * Objects are active by default.
@@ -194,7 +196,7 @@ class Tweet extends AbstractModel implements
      */
     public function setTags($tags)
     {
-        $this->tags = $tags;
+        $this->tags = $this->parseAsMultiple($tags);
 
         return $this;
     }
@@ -241,6 +243,7 @@ class Tweet extends AbstractModel implements
     public function setUser($user)
     {
         $this->user = $user;
+        $this->user = $this->castTo($user, User::class);
 
         return $this;
     }
@@ -285,7 +288,7 @@ class Tweet extends AbstractModel implements
      */
     public function url()
     {
-        return self::URL_USER . $this->handle() . '/status/' . $this->id();
+        return self::URL_USER . $this->user()->handle() . '/status/' . $this->id();
     }
 
     // Events

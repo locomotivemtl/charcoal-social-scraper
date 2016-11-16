@@ -19,9 +19,9 @@ use \Charcoal\Model\AbstractModel;
 use \Charcoal\Support\Container\DependentInterface;
 use \Charcoal\Support\Model\ManufacturableModelTrait;
 use \Charcoal\Support\Model\ManufacturableModelCollectionTrait;
+use \Charcoal\Support\Property\ParsableValueTrait;
 
 // From `charcoal-instagram`
-use \Charcoal\Instagram\Object\Tag;
 use \Charcoal\Instagram\Object\User;
 
 /**
@@ -32,6 +32,7 @@ class Media extends AbstractModel implements
 {
     use ManufacturableModelTrait;
     use ManufacturableModelCollectionTrait;
+    use ParsableValueTrait;
 
     /**
      * Objects are active by default.
@@ -170,7 +171,7 @@ class Media extends AbstractModel implements
      */
     public function setTags($tags)
     {
-        $this->tags = $tags;
+        $this->tags = $this->parseAsMultiple($tags);
 
         return $this;
     }
@@ -216,7 +217,7 @@ class Media extends AbstractModel implements
      */
     public function setUser($user)
     {
-        $this->user = $user;
+        $this->user = $this->castTo($user, User::class);
 
         return $this;
     }
@@ -307,6 +308,6 @@ class Media extends AbstractModel implements
      */
     public function url()
     {
-        return json_decode($this->structure())->link;
+        return json_decode($this->json())->link;
     }
 }
