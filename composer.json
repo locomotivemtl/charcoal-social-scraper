@@ -1,11 +1,11 @@
 {
-    "name": "dominiclord/charcoal-social-scraper",
-    "description": "Adds support for querying social media content and saving results as Charcoal Models.",
+    "name": "locomotivemtl/charcoal-social-scraper",
+    "description": "Provides API and Charcoal Models for querying social media content.",
     "homepage": "https://charcoal.locomotive.ca",
     "license": "MIT",
     "support": {
-        "issues": "https://github.com/dominiclord/charcoal-social-scraper/issues",
-        "source": "https://github.com/dominiclord/charcoal-social-scraper"
+        "issues": "https://github.com/locomotivemtl/charcoal-social-scraper/issues",
+        "source": "https://github.com/locomotivemtl/charcoal-social-scraper"
     },
     "authors": [
         {
@@ -18,7 +18,13 @@
         }
     ],
     "minimum-stability": "dev",
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.1.x-dev"
+        }
+    },
     "require": {
+        "locomotivemtl/charcoal-core": "~0.2",
         "mcaskill/charcoal-support": "dev-master",
         "abraham/twitteroauth": "^0.7.1",
         "larabros/elogram": "^1.2"
@@ -26,13 +32,16 @@
     "require-dev": {
         "phpunit/phpunit": "^4.8",
         "squizlabs/php_codesniffer": "^2.4",
-        "satooshi/php-coveralls":"~1.0"
+        "satooshi/php-coveralls": "~1.0"
     },
     "autoload": {
         "psr-4": {
-            "Charcoal\\Instagram\\": "src/Charcoal/Instagram",
-            "Charcoal\\SocialScraper\\": "src/Charcoal/SocialScraper",
-            "Charcoal\\Twitter\\": "src/Charcoal/Twitter"
+            "Charcoal\\": "src/Charcoal"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Charcoal\\Tests\\": "tests/Charcoal"
         }
     },
     "scripts": {
