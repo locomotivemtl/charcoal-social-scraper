@@ -2,15 +2,17 @@
 
 namespace Charcoal\SocialScraper;
 
-use \DateTime;
-use \Exception;
-use \InvalidArgumentException;
+use DateTime;
+use DateTimeInterface;
+use OutOfBoundsException;
+use RuntimeException;
 
 // Module `charcoal-factory` dependencies
-use \Charcoal\Factory\FactoryInterface;
+use Charcoal\Factory\FactoryInterface;
 
-// From `charcoal-social-scraper`
-use \Charcoal\SocialScraper\Object\ScrapeRecord;
+// From 'charcoal-social-scraper'
+use Charcoal\SocialScraper\Exception\MissingOptionsException;
+use Charcoal\SocialScraper\Object\ScrapeRecord;
 
 /**
  * Generic scraping class intended for connection to a social network API
@@ -19,42 +21,55 @@ use \Charcoal\SocialScraper\Object\ScrapeRecord;
 abstract class AbstractScraper
 {
     /**
-     * @var FactoryInterface $modelFactory
+     * Store the model factory instance.
+     *
+     * @var FactoryInterface
      */
     protected $modelFactory;
 
     /**
-     * The project configuration container.
+     * Store the API client.
      *
-     * @var \Charcoal\Config\ConfigInterface|null;
-     */
-    protected $appConfig;
-
-    /**
-     * @var mixed $client
+     * @var object
      */
     protected $client;
 
     /**
-     * @var array $results
+     * Results of a scrape.
+     *
+     * @var array
      */
     protected $results;
 
     /**
+     * Custom configuration.
+     *
+     * @var array
+     */
+    private $config = [];
+
+    /**
      * Default configuration.
      *
-     * @var array $config
+     * @var array
      */
-    private $config = [
-        'record' => true,
-        'recordExpires' => '1 hour',
-        'recordOptions' => [
-            'network' => '',
+    private $defaultConfig = [
+        'record'         => true,
+        'recordExpires'  => '1 hour',
+        'recordOptions'  => [
+            'network'    => '',
             'repository' => '',
-            'method' => '',
-            'filter' => ''
+            'method'     => '',
+            'filters'    => ''
         ]
     ];
+
+    /**
+     * Immutable configuration.
+     *
+     * @var array
+     */
+    protected $immutableConfig = [];
 
     /**
      * @param array $data The constructor options.
@@ -62,90 +77,88 @@ abstract class AbstractScraper
      */
     public function __construct(array $data)
     {
-        $this->appConfig = $data['config'];
-        $this->setClient($data['client']);
+        if (isset($data['config'])) {
+            $this->setConfig($data['config']);
+        }
+
+        if (isset($data['client'])) {
+            $this->setClient($data['client']);
+        }
+
         $this->setModelFactory($data['model_factory']);
     }
 
     /**
-     * @param FactoryInterface $factory The factory used to create logs and models.
-     * @return void
+     * Set an object model factory.
+     *
+     * @param FactoryInterface $factory The model factory, to create objects.
+     * @return self
      */
-    private function setModelFactory(FactoryInterface $factory)
+    protected function setModelFactory(FactoryInterface $factory)
     {
         $this->modelFactory = $factory;
+
+        return $this;
     }
 
     /**
-     * @throws Exception If the model factory was not properly set.
+     * Retrieve the object model factory.
+     *
+     * @throws RuntimeException If the model factory was not previously set.
      * @return FactoryInterface
      */
     protected function modelFactory()
     {
-        if ($this->modelFactory === null) {
-            throw new Exception(
+        if (!isset($this->modelFactory)) {
+            throw new RuntimeException(
                 'Can not access model factory, the dependency has not been set.'
             );
         }
+
         return $this->modelFactory;
     }
 
     /**
      * Attempt to get the latest ScrapeRecord according to specific properties
      *
-     * @throws Exception If the required arguments are not supplied.
-     * @return ModelInterface  A ScrapeRecord instance.
+     * @throws MissingOptionsException If a required option is missing.
+     * @return ModelInterface A ScrapeRecord instance.
      */
     public function fetchRecentScrapeRecord()
     {
         $config = $this->config();
-        $recordOptions = $config['recordOptions'];
 
-        // Required values
-        if (
-            empty($recordOptions['network']) ||
-            empty($recordOptions['repository']) ||
-            empty($recordOptions['method']) ||
-            empty($recordOptions['filters'])
-        ) {
-            throw new Exception(
-                'Can not create a ScrapeRecord, the config has not been properly set.'
-            );
+        /** @var array $recordOptions ScrapeRecord Options */
+        $recordOptions = $config['recordOptions'];
+        ksort($recordOptions);
+
+        // Check whether any required option is missing
+        $recordOptions = array_filter($recordOptions);
+        $diff = array_diff_key($recordOptions, $this->defaultConfig('recordOptions'));
+
+        if (count($diff) > 0) {
+            if (count($diff) > 1) {
+                $message = 'The required options "%s" are missing.';
+            } else {
+                $message = 'The required option "%s" is missing.';
+            }
+            throw new MissingOptionsException(sprintf(
+                'Bad configuration. '.$message,
+                implode('", "', array_keys($diff))
+            ));
         }
 
         // Create a proto model to generate the ident
-        $proto = $this->modelFactory()
-            ->create(ScrapeRecord::class)
-            ->setData([
-                'network' => $recordOptions['network'],
-                'repository' => $recordOptions['repository'],
-                'method' => $recordOptions['method'],
-                'filters' => $recordOptions['filters']
-            ]);
+        $record = $this->modelFactory()->create(ScrapeRecord::class);
+        $record->setData([
+            'network'    => $recordOptions['network'],
+            'repository' => $recordOptions['repository'],
+            'method'     => $recordOptions['method'],
+            'filters'    => $recordOptions['filters']
+        ]);
+        $record->loadLatestRecord($this->recordExpiration());
 
-        if (!$proto->source()->tableExists()) {
-            $proto->source()->createTable();
-        }
-
-        //@todo Config setter should create DateTime
-        $earlierDate = new DateTime('now - '. $config['recordExpires']);
-
-        // Query the DB for an existing record in the past hour
-        $model = $this->modelFactory()
-            ->create(ScrapeRecord::class)
-            ->loadFromQuery('
-                SELECT * FROM `' . $proto->source()->table() . '`
-                WHERE
-                    `ident` = :ident
-                ORDER BY
-                    `ts` DESC
-                LIMIT 1',
-                [
-                    'ident' => $proto->generateIdent()
-                ]
-            );
-
-        return ($earlierDate > $model->ts()) ? $proto : $model;
+        return $record;
     }
 
     /**
@@ -161,7 +174,7 @@ abstract class AbstractScraper
     /**
      * Set results.
      *
-     * @param ModelInterface[]|array|null
+     * @param  ModelInterface[]|array $results One or more objects.
      * @return self
      */
     public function setResults($results)
@@ -172,25 +185,117 @@ abstract class AbstractScraper
     }
 
     /**
-     * Merge defaults with supplied parameters.
+     * Retrieve the record expiration date/time.
      *
-     * @param array $config New config values.
+     * @return DateTimeInterface|null
+     */
+    public function recordExpiration()
+    {
+        return new DateTime('now - '.$this->config('recordExpires'));
+    }
+
+    /**
+     * Retrieve the web scraper configset or a given key's value.
+     *
+     * @param  string|null $key     Optional data key to retrieve from the configset.
+     * @param  mixed|null  $default The default value to return if data key does not exist.
+     * @return array
+     */
+    public function config($key = null, $default = null)
+    {
+        if ($key) {
+            if (isset($this->config[$key])) {
+                return $this->config[$key];
+            } else {
+                if (!is_string($default) && is_callable($default)) {
+                    return $default();
+                } else {
+                    return $default;
+                }
+            }
+        }
+
+        return $this->config;
+    }
+
+    /**
+     * Replace the web scraper configset with the given parameters.
+     *
+     * @param  array $config New config values.
      * @return self
      */
     public function setConfig(array $config)
     {
-        $this->config = array_replace_recursive($this->config, $config);
+        $this->config = array_replace_recursive(
+            $this->defaultConfig(),
+            $config,
+            $this->immutableConfig()
+        );
 
         return $this;
     }
 
     /**
-     * Retrieve the scraper config
+     * Merge given parameters into the web scraper configset.
      *
+     * @param  array $config New config values.
+     * @return self
+     */
+    public function mergeConfig(array $config)
+    {
+        $this->config = array_replace_recursive(
+            $this->defaultConfig(),
+            $this->config,
+            $config,
+            $this->immutableConfig()
+        );
+
+        return $this;
+    }
+
+    /**
+     * Retrieve the default web scraper configuration.
+     *
+     * @param  string|null $key Optional data key to retrieve from the configset.
+     * @throws OutOfBoundsException If the requested setting does not exist.
      * @return array
      */
-    public function config()
+    protected function defaultConfig($key = null)
     {
-        return $this->config;
+        if ($key) {
+            if (isset($this->defaultConfig[$key])) {
+                return $this->defaultConfig[$key];
+            } else {
+                throw new OutOfBoundsException(sprintf(
+                    'The setting "%s" does not exist.',
+                    $key
+                ));
+            }
+        }
+
+        return $this->defaultConfig;
+    }
+
+    /**
+     * Retrieve the immutable options of the web scraper.
+     *
+     * @param  string|null $key Optional data key to retrieve from the configset.
+     * @throws OutOfBoundsException If the requested setting does not exist.
+     * @return array
+     */
+    protected function immutableConfig($key = null)
+    {
+        if ($key) {
+            if (isset($this->immutableConfig[$key])) {
+                return $this->immutableConfig[$key];
+            } else {
+                throw new OutOfBoundsException(sprintf(
+                    'The setting "%s" does not exist.',
+                    $key
+                ));
+            }
+        }
+
+        return $this->immutableConfig;
     }
 }

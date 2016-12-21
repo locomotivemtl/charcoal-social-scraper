@@ -2,18 +2,22 @@
 
 namespace Charcoal\SocialScraper;
 
-use \DateTime;
-use \Exception;
-use \InvalidArgumentException;
+use DateTime;
+use Exception;
+use RuntimeException;
+use InvalidArgumentException;
 
 // From 'larabros/elogram'
-use \Larabros\Elogram\Client as InstagramClient;
+use Larabros\Elogram\Client as InstagramClient;
 
-// From `charcoal-social-scraper`
-use \Charcoal\Instagram\Object\Media;
-use \Charcoal\Instagram\Object\Tag;
-use \Charcoal\Instagram\Object\User;
-use \Charcoal\SocialScraper\AbstractScraper;
+// From 'charcoal-social-scraper'
+use Charcoal\SocialScraper\Exception\ApiResponseException;
+use Charcoal\SocialScraper\AbstractScraper;
+use Charcoal\SocialScraper\ScraperInterface;
+
+use Charcoal\Instagram\Object\Media;
+use Charcoal\Instagram\Object\Tag;
+use Charcoal\Instagram\Object\User;
 
 /**
  * Scraping class that connects to Instagram API and converts medias/users/tags to Charcoal Objects.
@@ -21,26 +25,32 @@ use \Charcoal\SocialScraper\AbstractScraper;
 class InstagramScraper extends AbstractScraper implements
     ScraperInterface
 {
+    const NETWORK = 'instagram';
+
     /**
      * The social media network. Used by ScrapeRecord
      *
      * @var string
      */
-    private $network = 'instagram';
+    private $network = self::NETWORK;
 
     /**
-     * @param InstagramClient $client The Instagram Client used to query the API.
-     * @throws Exception If the supplied client is not a proper InstagramClient.
+     * Immutable configuration.
+     *
+     * @var array
+     */
+    protected $immutableConfig = [
+        'recordOptions' => [
+            'network'   => self::NETWORK
+        ]
+    ];
+
+    /**
+     * @param  InstagramClient $client The client used to query the API.
      * @return self
      */
-    public function setClient($client)
+    public function setClient(InstagramClient $client)
     {
-        if (!$client instanceof InstagramClient) {
-            throw new Exception(
-                'The client must be an instance of \Larabros\Elogram\Client.'
-            );
-        }
-
         $this->client = $client;
 
         return $this;
@@ -49,32 +59,39 @@ class InstagramScraper extends AbstractScraper implements
     /**
      * Retrieve the Instagram Client.
      *
-     * @throws Exception If the Instagram client was not properly set.
+     * @throws RuntimeException If the client was not properly set.
      * @return InstagramClient
      */
     public function client()
     {
         if ($this->client === null) {
-            throw new Exception(
-                'Can not access Instagram client, the dependency has not been set.'
-            );
+            throw new RuntimeException(sprintf(
+                'Can not access %s, the dependency has not been set.',
+                InstagramClient::class
+            ));
         }
+
         return $this->client;
     }
 
     /**
      * Scrape Instagram API according to hashtag.
      *
-     * @param  string $tag The searched tag.
-     * @throws InvalidArgumentException If the query is not a string or is empty.
+     * @param  string $tag     The searched tag.
+     * @param  array  $filters Modify the API request.
+     * @throws InvalidArgumentException If the tag is invalid.
      * @return ModelInterface[]|null
      */
-    public function scrapeByTag($tag)
+    public function scrapeByTag($tag, array $filters = [])
     {
         if (!is_string($tag)) {
             throw new InvalidArgumentException(
-                'Scraped tag must be a string.'
+                'Tag must be a string.'
             );
+        }
+
+        if (0 === strpos($tag, '#')) {
+            $tag = substr($tag, 1);
         }
 
         if ($tag == '') {
@@ -83,45 +100,46 @@ class InstagramScraper extends AbstractScraper implements
             );
         }
 
+        $defaults  = [];
+        $immutable = [ 'tag' => $tag ];
+
         return $this->scrapeMedia([
             'repository' => 'tags',
-            'method' => 'getRecentMedia',
-            'filters' => [
-                'tag' => $tag
-            ]
+            'method'     => 'getRecentMedia',
+            'filters'    => array_replace_recursive($defaults, $filters, $immutable)
         ]);
     }
 
     /**
      * Scrape Instagram API for all posts by authorized user.
      *
+     * @param  array $filters Modify the API request.
      * @return ModelInterface[]|null
      */
-    public function scrapeAll()
+    public function scrapeAll(array $filters = [])
     {
+        $defaults  = [];
+        $immutable = [ 'id' => 'self' ];
+
         return $this->scrapeMedia([
             'repository' => 'users',
-            'method' => 'getMedia',
-            'filters' => [
-                'id' => 'self'
-            ]
+            'method'     => 'getMedia',
+            'filters'    => array_replace_recursive($defaults, $filters, $immutable)
         ]);
     }
 
     /**
      * Scrape Instagram API and parse scraped data to create Charcoal models.
      *
-     * @param  array  $options  Scraping options.
+     * @param  array $options Scraping options.
      * @throws Exception If something goes wrong with API calls.
      * @return ModelInterface[]|null
      */
     private function scrapeMedia(array $options = [])
     {
         if ($this->results === null) {
-            //@todo This seems clumsy.
-            $config = [ 'recordOptions' => $options ];
-            $config['recordOptions']['network'] = $this->network();
-            $this->setConfig($config);
+            // @todo This seems clumsy.
+            $this->setConfig([ 'recordOptions' => $options ]);
 
             // Test for recent scrapes
             $record = $this->fetchRecentScrapeRecord();
@@ -131,17 +149,28 @@ class InstagramScraper extends AbstractScraper implements
                 return $this->results;
             }
 
-            $callApi = true;
-            $max = $min = null;
+            $callApi   = true;
+            $max       = null;
+            $min       = null;
             $rawMedias = [];
-            $models = [];
+            $models    = [];
 
-            $filters = $options['filters'];
+            $defaults  = [
+                'count' => 32
+            ];
+            $immutable = [];
+
+            $filters = array_replace_recursive($defaults, $options['filters'], $immutable);
 
             // First, attempt fetching Instagram data through pagination
             try {
                 while ($callApi) {
-                    $apiResponse = $this->client()->{$options['repository']}()->{$options['method']}(current($filters), 32, $min, $max);
+                    $apiResponse = $this->client()->{$options['repository']}()->{$options['method']}(
+                        $filters['id'],
+                        $filters['count'],
+                        $min,
+                        $max
+                    );
 
                     $rawMedias = $apiResponse->get()->merge($rawMedias);
 
@@ -152,9 +181,12 @@ class InstagramScraper extends AbstractScraper implements
                     }
                 }
             } catch (Exception $e) {
-                error_log('Fatal exception');
-                error_log(get_class($e));
-                error_log($e->getMessage());
+                error_log(sprintf(
+                    'Exception [%s] thrown in [%s]: %s',
+                    get_class($e),
+                    get_class($this),
+                    $e->getMessage()
+                ));
                 return $this->results;
             }
 
@@ -174,7 +206,7 @@ class InstagramScraper extends AbstractScraper implements
                 if ($mediaModel->id() === null) {
                     $tags = [];
 
-                    foreach($media['tags'] as $tag) {
+                    foreach ($media['tags'] as $tag) {
                         // Save the hashtags if not already saved
                         $tagModel = $this->modelFactory()->create(Tag::class);
 
@@ -206,9 +238,9 @@ class InstagramScraper extends AbstractScraper implements
 
                     if ($userModel->id() === null) {
                         $userModel->setData([
-                            'id' => $userData['id'],
-                            'username' => $userData['username'],
-                            'fullName' => $userData['full_name'],
+                            'id'             => $userData['id'],
+                            'username'       => $userData['username'],
+                            'fullName'       => $userData['full_name'],
                             'profilePicture' => $userData['profile_picture']
                         ]);
                         $userModel->save();

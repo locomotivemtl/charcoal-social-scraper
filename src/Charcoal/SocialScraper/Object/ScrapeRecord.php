@@ -2,51 +2,55 @@
 
 namespace Charcoal\SocialScraper\Object;
 
-use \DateTime;
-use \DateTimeInterface;
-use \Traversable;
-use \InvalidArgumentException;
+use DateTimeInterface;
+use Traversable;
+use InvalidArgumentException;
 
 // From 'charcoal-core'
-use \Charcoal\Model\AbstractModel;
+use Charcoal\Model\AbstractModel as CharcoalModel;
+
+// From 'charcoal-support'
+use Charcoal\Support\Property\ParsableValueTrait;
 
 /**
  * Scrape records should be saved every time a client initiates a scrape request.
  */
-class ScrapeRecord extends AbstractModel
+class ScrapeRecord extends CharcoalModel
 {
+    use ParsableValueTrait;
+
     /**
      * The scrape record identifier.
      *
-     * @var string
+     * @var string|null
      */
     protected $ident;
 
     /**
      * The social network identifier.
      *
-     * @var string
+     * @var string|null
      */
     protected $network;
 
     /**
      * The scrape record repository.
      *
-     * @var string
+     * @var string|null
      */
     protected $repository;
 
     /**
      * The scrape record method.
      *
-     * @var string
+     * @var string|null
      */
     protected $method;
 
     /**
      * The scrape record filters.
      *
-     * @var string
+     * @var string|null
      */
     protected $filters;
 
@@ -55,7 +59,57 @@ class ScrapeRecord extends AbstractModel
      *
      * @var DateTimeInterface|null
      */
-    protected $ts;
+    protected $createdDate;
+
+    /**
+     * Attempt to load the latest record according to this model's data.
+     *
+     * @param  DateTimeInterface|null $expiresAt Filter the latest record by expiration timestamp.
+     * @return ScrapeRecord Chainable
+     */
+    public function loadLatestRecord(DateTimeInterface $expiresAt = null)
+    {
+        $source = $this->source();
+
+        if (!$source->tableExists()) {
+            return $this;
+        }
+
+        $sql = '
+            SELECT * FROM `'.$source->table().'`
+            WHERE 1 = 1';
+
+        $props  = [ 'network', 'repository', 'method', 'filters' ];
+        $fields = [];
+        foreach ($props as $p) {
+            $v = $this[$p];
+
+            if (empty($v) && !is_numeric($v)) {
+                continue;
+            }
+
+            $fields[$p] = $v;
+            $sql .= ' AND `'.$p.'` = :'.$p;
+        }
+
+        if (empty($fields)) {
+            return $this;
+        }
+
+        if ($expiresAt) {
+            $fields['created_date'] = $expiresAt;
+            $sql .= ' AND `created_date` <= :created_date';
+        }
+
+        $sql .= '
+            ORDER BY
+                `created_date` DESC
+            LIMIT 1';
+
+        $this->loadFromQuery($sql, $fields);
+
+        return $this;
+    }
 
     /**
      * Generate an ident from the object's repository, method, and filter properties.
@@ -196,8 +250,7 @@ class ScrapeRecord extends AbstractModel
     /**
      * Set the scrape filters as key:value pairs.
      *
-     * @param  string $filter The filter name.
-     * @throws InvalidArgumentException If the filter is not a string.
+     * @param  mixed $filters One or more filters.
      * @return ScrapeRecord Chainable
      */
     public function setFilters($filters)
@@ -220,50 +273,27 @@ class ScrapeRecord extends AbstractModel
     }
 
     /**
-     * Set when the scrape was initiated.
+     * Set when the scrape was requested.
      *
-     * @param  DateTime|string|null $timestamp The timestamp of scrape record.
-     *     NULL is accepted and instances of DateTimeInterface are recommended;
-     *     any other value will be converted (if possible) into one.
-     * @throws InvalidArgumentException If the timestamp is invalid.
-     * @return ScrapeRecord Chainable
+     * @param  string|DateTime $time A date/time value. Valid formats are explained in
+     *     {@link http://php.net/manual/en/datetime.formats.php Date and Time Formats}.
+     * @return self
      */
-    public function setTs($timestamp)
+    public function setCreatedDate($time)
     {
-        if ($timestamp === null) {
-            $this->ts = null;
-            return $this;
-        }
-
-        if (is_string($timestamp)) {
-            try {
-                $timestamp = new DateTime($timestamp);
-            } catch (Exception $e) {
-                throw new InvalidArgumentException(
-                    sprintf('Invalid timestamp: %s', $e->getMessage())
-                );
-            }
-        }
-
-        if (!$timestamp instanceof DateTimeInterface) {
-            throw new InvalidArgumentException(
-                'Invalid timestamp value. Must be a date/time string or a DateTime object.'
-            );
-        }
-
-        $this->ts = $timestamp;
+        $this->createdDate = $this->parseAsDateTime($time);
 
         return $this;
     }
 
     /**
-     * Retrieve the creation timestamp.
+     * Retrieve the scrape's request timestamp.
      *
-     * @return DateTime|null
+     * @return DateTimeInterface|null
      */
-    public function ts()
+    public function createdDate()
     {
-        return $this->ts;
+        return $this->createdDate;
     }
 
     /**
@@ -274,11 +304,9 @@ class ScrapeRecord extends AbstractModel
      */
     public function preSave()
     {
-        $result = parent::preSave();
-
-        $this->setTs('now');
+        $this->setCreatedDate('now');
         $this->setIdent($this->generateIdent());
 
-        return $result;
+        return parent::preSave();
     }
 }

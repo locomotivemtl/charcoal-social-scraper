@@ -2,11 +2,12 @@
 
 namespace Charcoal\SocialScraper\Traits;
 
-use \RuntimeException;
+use RuntimeException;
 
-// From `charcoal-social-scraper`
-use \Charcoal\SocialScraper\InstagramScraper;
-use \Charcoal\SocialScraper\TwitterScraper;
+// From 'charcoal-social-scraper'
+use Charcoal\SocialScraper\ScraperInterface;
+use Charcoal\SocialScraper\InstagramScraper;
+use Charcoal\SocialScraper\TwitterScraper;
 
 /**
  * Common Scraper features for template controllers.
@@ -16,21 +17,21 @@ trait ScraperAwareTrait
     /**
      * Store the Instagram scraper instance for the current class.
      *
-     * @var InstagramScraper
+     * @var ScraperInterface|null
      */
     protected $instagramScraper;
 
     /**
      * Store the Twitter scraper instance for the current class.
      *
-     * @var TwitterScraper
+     * @var ScraperInterface|null
      */
     protected $twitterScraper;
 
     /**
      * Set the Instagram scraper.
      *
-     * @param  Scraper $scrape The Instagram scraper instance.
+     * @param  InstagramScraper $scraper The Instagram scraper instance.
      * @return self
      */
     protected function setInstagramScraper(InstagramScraper $scraper)
@@ -44,13 +45,13 @@ trait ScraperAwareTrait
      * Retrieve the Instagram scraper.
      *
      * @throws RuntimeException If the Instagram scraper was not previously set.
-     * @return Scraper
+     * @return ScraperInterface
      */
     public function instagramScraper()
     {
         if (!isset($this->instagramScraper)) {
             throw new RuntimeException(
-                sprintf('Instagram scraper is not defined for "%s"', get_class($this))
+                sprintf('Instagram Scraper is not defined for "%s"', get_class($this))
             );
         }
 
@@ -60,7 +61,7 @@ trait ScraperAwareTrait
     /**
      * Set the Twitter scraper.
      *
-     * @param  TwitterScraper $scrape The Twitter scraper instance.
+     * @param  TwitterScraper $scraper The Twitter scraper instance.
      * @return self
      */
     protected function setTwitterScraper(TwitterScraper $scraper)
@@ -74,13 +75,13 @@ trait ScraperAwareTrait
      * Retrieve the Twitter scraper.
      *
      * @throws RuntimeException If the Twitter scraper was not previously set.
-     * @return TwitterScraper
+     * @return ScraperInterface
      */
     public function twitterScraper()
     {
         if (!isset($this->twitterScraper)) {
             throw new RuntimeException(
-                sprintf('Twitter scraper is not defined for "%s"', get_class($this))
+                sprintf('Twitter Scraper is not defined for "%s"', get_class($this))
             );
         }
 

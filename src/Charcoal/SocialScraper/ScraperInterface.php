@@ -8,14 +8,6 @@ namespace Charcoal\SocialScraper;
 interface ScraperInterface
 {
     /**
-     * Set a social media client.
-     *
-     * @param mixed $client The client instance, to query an API.
-     * @return self
-     */
-    public function setClient($client);
-
-    /**
      * Retrieve the social media client.
      *
      * @return mixed
