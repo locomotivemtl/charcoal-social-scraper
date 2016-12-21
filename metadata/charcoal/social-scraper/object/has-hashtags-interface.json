@@ -1,0 +1,9 @@
+{
+    "properties": {
+        "tags": {
+            "type": "string",
+            "multiple": true,
+            "label": "Hashtags"
+        }
+    }
+}

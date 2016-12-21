@@ -32,7 +32,28 @@
             "type": "structure",
             "allow_null": false
         },
-        "ts": {
+        "status": {
+            "type": "string",
+            "multiple": {
+                "separator": "|"
+            },
+            "label": {
+                "en": "API Response Information",
+                "fr": "Informations sur la réponse de l'API"
+            }
+        },
+        "origin": {
+            "type": "text",
+            "label": {
+                "en": "Origin",
+                "fr": "Origine"
+            },
+            "description": {
+                "en": "The location (e.g., URL) or the name of the program that triggered the scrape.",
+                "fr": "L'emplacement (e.g., URL) ou le nom de l'application qui a exécutée le scrape."
+            }
+        },
+        "log_date": {
             "type": "date-time",
             "readonly": true,
             "label": {
@@ -47,7 +68,7 @@
             "default": {
                 "properties": [
                     "ident",
-                    "ts"
+                    "log_date"
                 ],
                 "list_actions": [],
                 "properties_options": {}
@@ -70,7 +91,7 @@
                             ]
                         },
                         "properties": [
-                            "ts",
+                            "log_date",
                             "ident",
                             "source",
                             "repository",

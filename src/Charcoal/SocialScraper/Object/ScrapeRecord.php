@@ -2,6 +2,7 @@
 
 namespace Charcoal\SocialScraper\Object;
 
+use DateTime;
 use DateTimeInterface;
 use Traversable;
 use InvalidArgumentException;
@@ -18,6 +19,18 @@ use Charcoal\Support\Property\ParsableValueTrait;
 class ScrapeRecord extends CharcoalModel
 {
     use ParsableValueTrait;
+
+    /** @const string Standard response for successful API requests. */
+    const STATUS_OK = 'OK';
+
+    /** @const string Standard response for failed API requests. */
+    const STATUS_FAIL = 'FAIL';
+
+    /** @const string Standard response for unprocessed API requests (fresh data is present). */
+    const STATUS_HIT = 'HIT';
+
+    /** @const string Standard response for unprocessed API requests (either stale or no data). */
+    const STATUS_MISS = 'MISS';
 
     /**
      * The scrape record identifier.
@@ -50,16 +63,30 @@ class ScrapeRecord extends CharcoalModel
     /**
      * The scrape record filters.
      *
-     * @var string|null
+     * @var array|string|null
      */
     protected $filters;
+
+    /**
+     * The API response summary.
+     *
+     * @var string[]|string||null
+     */
+    protected $status;
 
     /**
      * Timestamp of the scrape request.
      *
      * @var DateTimeInterface|null
      */
-    protected $createdDate;
+    protected $logDate;
+
+    /**
+     * The scrape origin; an identifier representing where the scrape was executed from.
+     *
+     * @var string|null
+     */
+    private $origin;
 
     /**
      * Attempt to load the latest record according to this model's data.
@@ -75,9 +102,9 @@ class ScrapeRecord extends CharcoalModel
             return $this;
         }
 
-        $sql = '
-            SELECT * FROM `'.$source->table().'`
-            WHERE 1 = 1';
+        $sql = strtr('SELECT * FROM `%table` WHERE `status` = "OK"', [
+            '%table' => $source->table()
+        ]);
 
         $props  = [ 'network', 'repository', 'method', 'filters' ];
         $fields = [];
@@ -89,7 +116,9 @@ class ScrapeRecord extends CharcoalModel
             }
 
             $fields[$p] = $v;
-            $sql .= ' AND `'.$p.'` = :'.$p;
+            $sql .= strtr(' AND `%prop` = :%prop', [
+                '%prop' => $p
+            ]);
         }
 
         if (empty($fields)) {
@@ -97,14 +126,11 @@ class ScrapeRecord extends CharcoalModel
         }
 
         if ($expiresAt) {
-            $fields['created_date'] = $expiresAt;
-            $sql .= ' AND `created_date` <= :created_date';
+            $fields['log_date'] = $expiresAt->format('Y-m-d H:i:s');
+            $sql .= ' AND `log_date` > :log_date';
         }
 
-        $sql .= '
-            ORDER BY
-                `created_date` DESC
-            LIMIT 1';
+        $sql .= ' ORDER BY `log_date` DESC LIMIT 1';
 
         $this->loadFromQuery($sql, $fields);
 
@@ -114,6 +140,7 @@ class ScrapeRecord extends CharcoalModel
     /**
      * Generate an ident from the object's repository, method, and filter properties.
      *
+     * @deprecated
      * @return string
      */
     public function generateIdent()
@@ -130,6 +157,7 @@ class ScrapeRecord extends CharcoalModel
     /**
      * Set the scrape record's identifier.
      *
+     * @deprecated
      * @param  string $ident The scrape record.
      * @throws InvalidArgumentException If the identifier is not a string.
      * @return ScrapeRecord Chainable
@@ -150,6 +178,7 @@ class ScrapeRecord extends CharcoalModel
     /**
      * Retrieve the scrape record's identifier.
      *
+     * @deprecated
      * @return string
      */
     public function ident()
@@ -273,15 +302,42 @@ class ScrapeRecord extends CharcoalModel
     }
 
     /**
+     * Set the summary/notes of the API's response.
+     *
+     * @param  string|string[] $status A status code, message, or extra information about the response.
+     * @return self
+     */
+    public function setStatus($status)
+    {
+        $this->status = $this->parseAsMultiple($status);
+
+        return $this;
+    }
+
+    /**
+     * Retrieve the summary/notes of the API's response.
+     *
+     * @return string[]|null
+     */
+    public function status()
+    {
+        if (empty($this->status)) {
+            $this->status = self::STATUS_OK;
+        }
+
+        return $this->status;
+    }
+
+    /**
      * Set when the scrape was requested.
      *
      * @param  string|DateTime $time A date/time value. Valid formats are explained in
      *     {@link http://php.net/manual/en/datetime.formats.php Date and Time Formats}.
      * @return self
      */
-    public function setCreatedDate($time)
+    public function setLogDate($time)
     {
-        $this->createdDate = $this->parseAsDateTime($time);
+        $this->logDate = $this->parseAsDateTime($time);
 
         return $this;
     }
@@ -291,9 +347,59 @@ class ScrapeRecord extends CharcoalModel
      *
      * @return DateTimeInterface|null
      */
-    public function createdDate()
+    public function logDate()
     {
-        return $this->createdDate;
+        return $this->logDate;
+    }
+    /**
+     * Set the origin of the scrape request.
+     *
+     * @param  string $origin The source URL or identifier of the submission.
+     * @throws InvalidArgumentException If the argument is not a string.
+     * @return SearchLog Chainable
+     */
+    public function setOrigin($origin)
+    {
+        if ($origin !== null) {
+            if (!is_string($origin)) {
+                throw new InvalidArgumentException(
+                    'Origin must be a string.'
+                );
+            }
+        }
+
+        $this->origin = $origin;
+
+        return $this;
+    }
+
+    /**
+     * Resolve the origin of the scrape request.
+     *
+     * @return string
+     */
+    public function resolveOrigin()
+    {
+        $uri = 'http';
+
+        if (getenv('HTTPS') === 'on') {
+            $uri .= 's';
+        }
+
+        $uri .= '://';
+        $uri .= getenv('HTTP_HOST').getenv('REQUEST_URI');
+
+        return $uri;
+    }
+
+    /**
+     * Retrieve the origin of the scrape request.
+     *
+     * @return string
+     */
+    public function origin()
+    {
+        return $this->origin;
     }
 
     /**
@@ -304,8 +410,11 @@ class ScrapeRecord extends CharcoalModel
      */
     public function preSave()
     {
-        $this->setCreatedDate('now');
+        $this->setLogDate('now');
         $this->setIdent($this->generateIdent());
+        if (!isset($this->origin)) {
+            $this->setOrigin($this->resolveOrigin());
+        }
 
         return parent::preSave();
     }

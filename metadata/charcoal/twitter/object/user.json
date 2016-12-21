@@ -8,36 +8,15 @@
     "default_source": "charcoal.twitter.user",
 
     "labels": {
-        "name": "Twitter Users",
-        "singular_name": "Twitter User",
-        "edit_item": {
-            "en": "Edit User",
-            "fr": "Modifier l'utilisateur"
-        },
-        "all_items": {
-            "en": "All Twitter Users",
-            "fr": "Toutes les utilisateur Twitter"
-        },
-        "menu_items": "Twitter Users"
+        "menu_items": {
+            "en": "Twitter Users",
+            "fr": "Twitter Usagers"
+        }
     },
 
     "properties": {
-        "id": {
-            "type": "id",
-            "mode": "uuid",
-            "readonly": true
-        },
-        "name": {
-            "type": "string"
-        },
-        "handle": {
-            "type": "string"
-        },
-        "profile_picture": {
-            "type": "string"
-        },
-        "active": {
-            "type": "boolean"
+        "url": {
+            "storable": false
         }
     },
 
@@ -45,12 +24,45 @@
         "lists": {
             "default": {
                 "properties": [
+                    "active",
+                    "avatar",
                     "name",
-                    "handle",
-                    "active"
+                    "handle"
                 ],
                 "list_actions": [],
-                "properties_options": {}
+                "properties_options": {
+                    "active": {
+                        "view_options": {
+                            "attr": {
+                                "width": "5%",
+                                "class": "text-center"
+                            }
+                        }
+                    },
+                    "avatar": {
+                        "view_options": {
+                            "label": "Avatar",
+                            "attr": {
+                                "width": "5%",
+                                "class": "text-center"
+                            }
+                        }
+                    },
+                    "name": {
+                        "view_options": {
+                            "attr": {
+                                "width": "45%"
+                            }
+                        }
+                    },
+                    "handle": {
+                        "view_options": {
+                            "attr": {
+                                "width": "45%"
+                            }
+                        }
+                    }
+                }
             }
         },
         "default_list": "default",
@@ -64,17 +76,17 @@
                         "show_header": false,
                         "layout": {
                             "structure": [
-                                { "columns": [ 1, 1 ] },
+                                { "columns": [ 1, 3 ] },
                                 { "columns": [ 1, 1 ] },
                                 { "columns": [ 1 ] }
                             ]
                         },
                         "properties": [
+                            "active",
                             "id",
                             "name",
                             "handle",
-                            "profile_picture",
-                            "active"
+                            "avatar"
                         ]
                     }
                 },
@@ -99,13 +111,7 @@
                         "priority": 10,
                         "type": "charcoal/admin/widget/objectForm",
                         "form_ident": "default",
-                        "obj_type": "charcoal/twitter/object/user",
                         "group_display_mode": "tab"
-                    }
-                },
-                "sidemenu": {
-                    "widget_options": {
-                        "ident": "twitter"
                     }
                 }
             },
@@ -117,15 +123,9 @@
                 },
                 "widgets": {
                     "list": {
-                        "type": "charcoal/admin/widget/table",
+                        "type": "charcoal/support/admin/widget/table",
                         "collection_ident": "default",
-                        "obj_type": "charcoal/twitter/object/user",
                         "data_sources": [ "request" ]
-                    }
-                },
-                "sidemenu": {
-                    "widget_options": {
-                        "ident": "twitter"
                     }
                 }
             }

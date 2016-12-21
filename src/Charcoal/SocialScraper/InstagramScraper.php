@@ -250,14 +250,14 @@ class InstagramScraper extends AbstractScraper implements
                     $created->setTimestamp($media['created_time']);
 
                     $mediaModel->setData([
-                        'id'      => $media['id'],
-                        'created' => $created,
-                        'tags'    => $tags,
-                        'caption' => $media['caption']['text'],
-                        'user'    => $userModel->id(),
-                        'image'   => $media['images']['standard_resolution']['url'],
-                        'type'    => $media['type'],
-                        'json'    => json_encode($media)
+                        'id'           => $media['id'],
+                        'created_date' => $created,
+                        'tags'         => $tags,
+                        'caption'      => $media['caption']['text'],
+                        'user'         => $userModel->id(),
+                        'image'        => $media['images']['standard_resolution']['url'],
+                        'type'         => $media['type'],
+                        'raw_data'     => json_encode($media)
                     ]);
 
                     $mediaModel->save();

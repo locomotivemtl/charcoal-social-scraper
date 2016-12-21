@@ -270,12 +270,12 @@ class TwitterScraper extends AbstractScraper implements
                     }
 
                     $tweetModel->setData([
-                        'id'      => $tweet->id,
-                        'created' => $tweet->created_at,
-                        'tags'    => $tags,
-                        'content' => $tweet->text,
-                        'user'    => $userModel->id(),
-                        'json'    => json_encode((array)$tweet)
+                        'id'           => $tweet->id,
+                        'created_data' => $tweet->created_at,
+                        'tags'         => $tags,
+                        'content'      => $tweet->text,
+                        'user'         => $userModel->id(),
+                        'raw_data'     => json_encode((array)$tweet)
                     ]);
 
                     $tweetModel->save();

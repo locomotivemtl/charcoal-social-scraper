@@ -1,0 +1,81 @@
+{
+    "labels": {
+        "name": {
+            "en": "Posts",
+            "fr": "Entrées"
+        },
+        "singular_name": {
+            "en": "Post",
+            "fr": "Entrée"
+        },
+        "view_item": {
+            "en": "View Post",
+            "fr": "Voir l'entrée"
+        },
+        "edit_item": {
+            "en": "Edit Post",
+            "fr": "Modifier l'entrée"
+        },
+        "all_items": {
+            "en": "All Posts",
+            "fr": "Toutes les entrées"
+        },
+        "menu_items": {
+            "en": "Posts",
+            "fr": "Entrées"
+        }
+    },
+
+    "properties": {
+        "id": {
+            "type": "id",
+            "mode": "custom",
+            "label": "ID"
+        },
+        "active": {
+            "type": "boolean",
+            "label": {
+                "fr": "Actif",
+                "en": "Active"
+            }
+        },
+        "import_date": {
+            "type": "date-time",
+            "input_type": "charcoal/admin/property/input/readonly",
+            "label": {
+                "en": "Importation Date",
+                "fr": "Date d'importation"
+            }
+        },
+        "created_date": {
+            "type": "date-time",
+            "input_type": "charcoal/admin/property/input/readonly",
+            "label": {
+                "en": "Creation Date",
+                "fr": "Date de création"
+            }
+        },
+        "user": {
+            "type": "string",
+            "label": {
+                "fr": "Usager",
+                "en": "User"
+            }
+        },
+        "url": {
+            "type": "url",
+            "label": "URL"
+        },
+        "raw_data": {
+            "type": "structure",
+            "label": {
+                "fr": "Raw Data",
+                "en": "Données brutes"
+            },
+            "notes": {
+                "fr": "Stored as a JSON object.",
+                "en": "Stocké en tant qu'objet JSON."
+            }
+        }
+    }
+}

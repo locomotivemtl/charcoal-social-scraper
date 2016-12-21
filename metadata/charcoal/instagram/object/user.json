@@ -8,36 +8,15 @@
     "default_source": "charcoal.instagram.user",
 
     "labels": {
-        "name": "Instagram Users",
-        "singular_name": "Instagram User",
-        "edit_item": {
-            "en": "Edit User",
-            "fr": "Modifier l'utilisateur"
-        },
-        "all_items": {
-            "en": "All Instagram Users",
-            "fr": "Toutes les utilisateur Instagram"
-        },
-        "menu_items": "Instagram Users"
+        "menu_items": {
+            "en": "Instagram Users",
+            "fr": "Usagers Instagram"
+        }
     },
 
     "properties": {
-        "id": {
-            "type": "id",
-            "mode": "uuid",
-            "readonly": true
-        },
-        "username": {
-            "type": "string"
-        },
-        "full_name": {
-            "type": "string"
-        },
-        "profile_picture": {
-            "type": "string"
-        },
-        "active": {
-            "type": "boolean"
+        "url": {
+            "storable": false
         }
     },
 
@@ -45,12 +24,45 @@
         "lists": {
             "default": {
                 "properties": [
-                    "username",
-                    "full_name",
-                    "active"
+                    "active",
+                    "avatar",
+                    "handle",
+                    "name"
                 ],
                 "list_actions": [],
-                "properties_options": {}
+                "properties_options": {
+                    "active": {
+                        "view_options": {
+                            "attr": {
+                                "width": "5%",
+                                "class": "text-center"
+                            }
+                        }
+                    },
+                    "avatar": {
+                        "view_options": {
+                            "label": "Avatar",
+                            "attr": {
+                                "width": "5%",
+                                "class": "text-center"
+                            }
+                        }
+                    },
+                    "handle": {
+                        "view_options": {
+                            "attr": {
+                                "width": "45%"
+                            }
+                        }
+                    },
+                    "name": {
+                        "view_options": {
+                            "attr": {
+                                "width": "45%"
+                            }
+                        }
+                    }
+                }
             }
         },
         "default_list": "default",
@@ -64,17 +76,17 @@
                         "show_header": false,
                         "layout": {
                             "structure": [
-                                { "columns": [ 1, 1 ] },
+                                { "columns": [ 1, 3 ] },
                                 { "columns": [ 1, 1 ] },
                                 { "columns": [ 1 ] }
                             ]
                         },
                         "properties": [
+                            "active",
                             "id",
-                            "username",
-                            "full_name",
-                            "profile_picture",
-                            "active"
+                            "name",
+                            "handle",
+                            "avatar"
                         ]
                     }
                 },
@@ -99,13 +111,7 @@
                         "priority": 10,
                         "type": "charcoal/admin/widget/objectForm",
                         "form_ident": "default",
-                        "obj_type": "charcoal/instagram/object/user",
                         "group_display_mode": "tab"
-                    }
-                },
-                "sidemenu": {
-                    "widget_options": {
-                        "ident": "instagram"
                     }
                 }
             },
@@ -119,13 +125,7 @@
                     "list": {
                         "type": "charcoal/admin/widget/table",
                         "collection_ident": "default",
-                        "obj_type": "charcoal/instagram/object/user",
                         "data_sources": [ "request" ]
-                    }
-                },
-                "sidemenu": {
-                    "widget_options": {
-                        "ident": "instagram"
                     }
                 }
             }

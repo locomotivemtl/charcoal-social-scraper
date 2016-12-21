@@ -2,75 +2,43 @@
 
 namespace Charcoal\Instagram\Object;
 
-use \DateTime;
-use \DateTimeInterface;
-use \InvalidArgumentException;
+// From Pimple
+use Pimple\Container;
 
-// From `pimple`
-use \Pimple\Container;
+// From 'charcoal-core'
+use Charcoal\Model\AbstractModel;
 
-// From `charcoal-factory`
-use \Charcoal\Factory\FactoryInterface;
+// From 'charcoal-support'
+use Charcoal\Support\Model\ManufacturableModelTrait;
+use Charcoal\Support\Model\ManufacturableModelCollectionTrait;
 
-// From `charcoal-core`
-use \Charcoal\Model\AbstractModel;
+// From 'charcoal-instagram'
+use Charcoal\SocialScraper\Object\AbstractPost;
+use Charcoal\SocialScraper\Object\HasHashtagsInterface;
+use Charcoal\SocialScraper\Object\HasHashtagsTrait;
 
-// From `charcoal-support`
-use \Charcoal\Support\Container\DependentInterface;
-use \Charcoal\Support\Model\ManufacturableModelTrait;
-use \Charcoal\Support\Model\ManufacturableModelCollectionTrait;
-use \Charcoal\Support\Property\ParsableValueTrait;
-
-// From `charcoal-instagram`
-use \Charcoal\Instagram\Object\User;
+use Charcoal\Instagram\Object\Tag;
+use Charcoal\Instagram\Object\User;
 
 /**
- * Instagram Media Object
+ * Instagram "{@link https://www.instagram.com/developer/endpoints/media/ Media}" Object
  */
-class Media extends AbstractModel implements
-    DependentInterface
+class Media extends AbstractPost implements
+    HasHashtagsInterface
 {
+    use HasHashtagsTrait;
     use ManufacturableModelTrait;
     use ManufacturableModelCollectionTrait;
-    use ParsableValueTrait;
 
     /**
-     * Objects are active by default.
-     *
-     * @var boolean $active
-     */
-    protected $active = true;
-
-    /**
-     * Object creation date (provided by third-party).
-     *
-     * @var DateTime $created
-     */
-    protected $created;
-
-    /**
-     * One or more tags the object belongs to (provided by third-party).
-     *
-     * @var ModelInterface[]|array|null
-     */
-    protected $tags;
-
-    /**
-     * The object's caption for the media (provided by third-party).
+     * The post's caption for the media (provided by third-party).
      *
      * @var string|null
      */
     protected $caption;
 
     /**
-     * User object that created the media (provided by third-party).
-     *
-     * @var ModelInterface|null
-     */
-    protected $user;
-
-    /**
-     * The main media source chosen for the object.
+     * The main media source chosen for the post.
      *
      * @var string|null
      */
@@ -82,13 +50,6 @@ class Media extends AbstractModel implements
      * @var string|null
      */
     protected $type;
-
-    /**
-     * The object's JSON representation/backup as provided by third-party when saved.
-     *
-     * @var string|null
-     */
-    protected $json;
 
     /**
      * Inject dependencies from a DI Container.
@@ -105,91 +66,34 @@ class Media extends AbstractModel implements
         $this->setModelFactory($container['model/factory']);
     }
 
-    // Setters and getters
-    // =================================================================================================================
-
     /**
-     * @param boolean $active The active flag.
-     * @return Content Chainable
-     */
-    public function setActive($active)
-    {
-        $this->active = !!$active;
-
-        return $this;
-    }
-
-    /**
-     * @return boolean
-     */
-    public function active()
-    {
-        return $this->active;
-    }
-
-    /**
-     * Set the object's creation date.
+     * Retrieve the post's user.
      *
-     * @param \DateTimeInterface|string|null $created The date/time at object's creation.
-     * @throws InvalidArgumentException If the date/time is invalid.
-     * @return self
+     * @return ModelInterface|null
      */
-    public function setCreated($created)
+    public function user()
     {
-        if ($created === null) {
-            $this->created = null;
-            return $this;
+        if ($this->user && !($this->user instanceof User)) {
+            $this->user = $this->castTo($this->user, User::class);
         }
-        if (is_string($created)) {
-            $created = new DateTime($created);
-        }
-        if (!($created instanceof DateTimeInterface)) {
-            throw new InvalidArgumentException(
-                'Invalid "Created" value. Must be a date/time string or a DateTime object.'
-            );
-        }
-        $this->created = $created;
 
-        return $this;
+        return $this->user;
     }
 
     /**
-     * Retrieve the object's creation date.
+     * Retrieve the post's caption.
      *
-     * @return DateTimeInterface|null
+     * @return string|null
      */
-    public function created()
+    public function caption()
     {
-        return $this->created;
+        return $this->caption;
     }
 
     /**
-     * Set the tags the object belongs to.
+     * Set the post's caption.
      *
-     * @param ModelInterface[]|array|null $tags The object's tags.
-     * @return self
-     */
-    public function setTags($tags)
-    {
-        $this->tags = $this->parseAsMultiple($tags);
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the tags the object belongs to.
-     *
-     * @return ModelInterface[]|array|null
-     */
-    public function tags()
-    {
-        return $this->tags;
-    }
-
-    /**
-     * Set the object's caption.
-     *
-     * @param  string|null $caption The caption.
+     * @param  string $caption The caption.
      * @return self
      */
     public function setCaption($caption)
@@ -200,42 +104,19 @@ class Media extends AbstractModel implements
     }
 
     /**
-     * Retrieve the object's caption.
+     * Retrieve the URL to the post's image.
      *
-     * @return string|null
+     * @return string
      */
-    public function caption()
+    public function image()
     {
-        return $this->caption;
+        return $this->image;
     }
 
     /**
-     * Set the object's user.
+     * Retrieve the URL to the post's image.
      *
-     * @param ModelInterface|null
-     * @return self
-     */
-    public function setUser($user)
-    {
-        $this->user = $this->castTo($user, User::class);
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the object's user.
-     *
-     * @return ModelInterface|null
-     */
-    public function user()
-    {
-        return $this->user;
-    }
-
-    /**
-     * Retrieve the object's image.
-     *
-     * @param string $image The main image/video.
+     * @param  string $image The main image/video.
      * @return self
      */
     public function setImage($image)
@@ -246,19 +127,13 @@ class Media extends AbstractModel implements
     }
 
     /**
-     * Retrieve the object's image.
+     * Set the post's media type.
      *
-     * @return string
-     */
-    public function image()
-    {
-        return $this->image;
-    }
-
-    /**
-     * Set the object's media type.
+     * Possible media types:
+     * - `image`
+     * - `video`
      *
-     * @param string $type Either `image` or `video`.
+     * @param  string $type A media type.
      * @return self
      */
     public function setType($type)
@@ -269,7 +144,7 @@ class Media extends AbstractModel implements
     }
 
     /**
-     * Retrieve the object's media type.
+     * Retrieve the post's media type.
      *
      * @return string
      */
@@ -279,35 +154,13 @@ class Media extends AbstractModel implements
     }
 
     /**
-     * Set the object's original JSON structure.
+     * Retrieve the post's URL
      *
-     * @param string $json A JSON structure.
-     * @return self
-     */
-    public function setJson($json)
-    {
-        $this->json = $json;
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the object's JSON structure.
-     *
-     * @return string
-     */
-    public function json()
-    {
-        return $this->json;
-    }
-
-    /**
-     * Retrieve the object's URL
-     *
-     * @return string
+     * @return string|null
      */
     public function url()
     {
-        return json_decode($this->json())->link;
+        $data = $this->rawData();
+        return (isset($data['link']) ? $data['link'] : null);
     }
 }

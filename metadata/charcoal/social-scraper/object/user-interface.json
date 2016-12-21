@@ -1,0 +1,84 @@
+{
+    "labels": {
+        "name": {
+            "en": "Users",
+            "fr": "Usagers"
+        },
+        "singular_name": {
+            "en": "User",
+            "fr": "Usager"
+        },
+        "view_item": {
+            "en": "View User",
+            "fr": "Voir l'usager"
+        },
+        "edit_item": {
+            "en": "Edit User",
+            "fr": "Modifier l'usager"
+        },
+        "all_items": {
+            "en": "All Users",
+            "fr": "Toutes les usagers"
+        },
+        "menu_items": {
+            "en": "Users",
+            "fr": "Usagers"
+        }
+    },
+
+    "properties": {
+        "id": {
+            "type": "id",
+            "mode": "custom",
+            "label": "ID"
+        },
+        "active": {
+            "type": "boolean",
+            "label": {
+                "fr": "Actif",
+                "en": "Active"
+            }
+        },
+        "import_date": {
+            "type": "date-time",
+            "input_type": "charcoal/admin/property/input/readonly",
+            "label": {
+                "en": "Importation Date",
+                "fr": "Date d'importation"
+            }
+        },
+        "created_date": {
+            "type": "date-time",
+            "input_type": "charcoal/admin/property/input/readonly",
+            "label": {
+                "en": "Creation Date",
+                "fr": "Date de création"
+            }
+        },
+        "handle": {
+            "type": "string",
+            "label": {
+                "fr": "Screen Name",
+                "en": "Identifiant"
+            }
+        },
+        "name": {
+            "type": "string",
+            "label": {
+                "fr": "Profile Name",
+                "en": "Nom de profil"
+            }
+        },
+        "avatar": {
+            "type": "image",
+            "label": {
+                "fr": "Profile Picture",
+                "en": "Image de profil"
+            }
+        },
+        "url": {
+            "type": "url",
+            "label": "URL"
+        }
+    }
+}

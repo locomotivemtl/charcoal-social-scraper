@@ -2,159 +2,45 @@
 
 namespace Charcoal\Instagram\Object;
 
-use \DateTime;
-use \DateTimeInterface;
-use \InvalidArgumentException;
+use DateTime;
+use DateTimeInterface;
+use InvalidArgumentException;
 
-// From `charcoal-core`
-use \Charcoal\Model\AbstractModel;
+// From 'charcoal-social-scraper'
+use Charcoal\SocialScraper\Object\AbstractUser;
 
 /**
- * Instagram Tag Object
+ * Instagram User Object
  */
-class User extends AbstractModel
+class User extends AbstractUser
 {
     /**
-     * Objects are active by default.
+     * The base URI to an Instagram user profile.
      *
-     * @var boolean $active
+     * @const string
      */
-    protected $active = true;
+    const URL_PATTERN = 'https://www.instagram.com/%handle';
 
     /**
-     * The object's username.
-     *
-     * @var string|null
-     */
-    protected $username;
-
-    /**
-     * The object's full name.
-     *
-     * @var string|null
-     */
-    protected $fullName;
-
-    /**
-     * The path to the object's profile picture.
-     *
-     * @var string|null
-     */
-    protected $profilePicture;
-
-    /**
-     * @const URL_USER  The base URI to an Instagram user profile.
-     */
-    const URL_USER  = 'https://www.instagram.com/';
-
-    /**
-     * Simple concat of @ and username
+     * Simple concat of @ and handle.
      *
      * @return string
      */
     public function via()
     {
-        return '@'.$this->username();
-    }
-
-    // Setters and getters
-    // =================================================================================================================
-
-    /**
-     * @param boolean $active The active flag.
-     * @return Content Chainable
-     */
-    public function setActive($active)
-    {
-        $this->active = !!$active;
-
-        return $this;
+        return '@'.$this->handle();
     }
 
     /**
-     * @return boolean
-     */
-    public function active()
-    {
-        return $this->active;
-    }
-
-    /**
-     * Retrieve the object's username.
-     *
-     * @param string $username The displayed username.
-     * @return self
-     */
-    public function setUsername($username)
-    {
-        $this->username = $username;
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the object's username.
-     *
-     * @return string
-     */
-    public function username()
-    {
-        return $this->username;
-    }
-
-    /**
-     * Retrieve the object's full name.
-     *
-     * @param string $fullName A full name.
-     * @return self
-     */
-    public function setFullName($fullName)
-    {
-        $this->fullName = $fullName;
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the object's full name.
-     *
-     * @return string
-     */
-    public function fullName()
-    {
-        return $this->fullName;
-    }
-
-    /**
-     * Retrieve the object's profile picture.
-     *
-     * @param string $profilePicture A path to an image.
-     * @return self
-     */
-    public function setProfilePicture($profilePicture)
-    {
-        $this->profilePicture = $profilePicture;
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the object's profile picture.
-     *
-     * @return string
-     */
-    public function profilePicture()
-    {
-        return $this->profilePicture;
-    }
-
-    /**
-     * Retrieve the object's URL
+     * Retrieve the user's URL on the third-party service.
      *
      * @return string
      */
     public function url()
     {
-        return self::URL_USER . $this->username();
+        return strtr(self::URL_PATTERN, [
+            '%id'     => $this->id(),
+            '%handle' => $this->handle(),
+        ]);
     }
 }

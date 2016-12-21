@@ -2,85 +2,44 @@
 
 namespace Charcoal\Twitter\Object;
 
-use \DateTime;
-use \DateTimeInterface;
-use \InvalidArgumentException;
+// From Pimple
+use Pimple\Container;
 
-// From `pimple`
-use \Pimple\Container;
+// From 'charcoal-support'
+use Charcoal\Support\Model\ManufacturableModelTrait;
+use Charcoal\Support\Model\ManufacturableModelCollectionTrait;
 
-// From `charcoal-factory`
-use \Charcoal\Factory\FactoryInterface;
+// From 'charcoal-social-scraper'
+use Charcoal\SocialScraper\Object\AbstractPost;
+use Charcoal\SocialScraper\Object\HasHashtagsInterface;
+use Charcoal\SocialScraper\Object\HasHashtagsTrait;
 
-// From `charcoal-core`
-use \Charcoal\Model\AbstractModel;
-
-// From `charcoal-support`
-use \Charcoal\Support\Container\DependentInterface;
-use \Charcoal\Support\Model\ManufacturableModelTrait;
-use \Charcoal\Support\Model\ManufacturableModelCollectionTrait;
-use \Charcoal\Support\Property\ParsableValueTrait;
-
-// From `charcoal-social-scraper`
-use \Charcoal\Twitter\Object\Tag;
-use \Charcoal\Twitter\Object\User;
+use Charcoal\Twitter\Object\Tag;
+use Charcoal\Twitter\Object\User;
 
 /**
- * Twitter Tweet Object
+ * Twitter "{@link https://dev.twitter.com/overview/api/tweets Tweet}" Object
  */
-class Tweet extends AbstractModel implements
-    DependentInterface
+class Tweet extends AbstractPost implements
+    HasHashtagsInterface
 {
+    use HasHashtagsTrait;
     use ManufacturableModelTrait;
     use ManufacturableModelCollectionTrait;
-    use ParsableValueTrait;
 
     /**
-     * Objects are active by default.
+     * The base URI to a Twitter user profile.
      *
-     * @var boolean $active
+     * @const string
      */
-    protected $active = true;
+    const URL_PATTERN = 'https://www.twitter.com/%handle/status/%id';
 
     /**
-     * Object creation date (provided by third-party).
-     *
-     * @var DateTime $created
-     */
-    protected $created;
-
-    /**
-     * One or more tags the object belongs to (provided by third-party).
-     *
-     * @var ModelInterface[]|array|null
-     */
-    protected $tags;
-
-    /**
-     * The object's content (provided by third-party).
+     * The text of the tweet (provided by third-party).
      *
      * @var string|null
      */
-    protected $content;
-
-    /**
-     * User object that created the media (provided by third-party).
-     *
-     * @var ModelInterface|null
-     */
-    protected $user;
-
-    /**
-     * The object's JSON representation/backup as provided by third-party when saved.
-     *
-     * @var string|null
-     */
-    protected $json;
-
-    /**
-     * @const URL_USER  The base URI to a Twitter user profile.
-     */
-    const URL_USER  = 'https://www.twitter.com/';
+    protected $text;
 
     /**
      * Inject dependencies from a DI Container.
@@ -98,217 +57,113 @@ class Tweet extends AbstractModel implements
     }
 
     /**
-     * Function that will turn all HTTP URLs, Twitter @usernames, and #tags into links.
-     *
-     * @see  https://davidwalsh.name/linkify-twitter-feed
-     * @param  string $text Tweet object->text
-     * @return string
-     */
-    public function linkifyTwitterStatus($content)
-    {
-        // Linkify URLs
-        $content = preg_replace(
-            '/(https?:\/\/\S+)/',
-            '<a target="_blank" href="\1">\1</a>',
-            $content
-        );
-
-        // Linkify twitter users
-        $content = preg_replace(
-            '/(^|\s)@(\w+)/',
-            '\1@<a target="_blank" href="https://twitter.com/\2">\2</a>',
-            $content
-        );
-
-        // Linkify tags
-        $content = preg_replace(
-            '/(^|\s)#(\w+)/',
-            '\1#<a target="_blank" href="https://search.twitter.com/search?q=%23\2">\2</a>',
-            $content
-        );
-
-        return $content;
-    }
-
-    // Setters and getters
-    // =================================================================================================================
-
-    /**
-     * @param boolean $active The active flag.
-     * @return Content Chainable
-     */
-    public function setActive($active)
-    {
-        $this->active = !!$active;
-
-        return $this;
-    }
-
-    /**
-     * @return boolean
-     */
-    public function active()
-    {
-        return $this->active;
-    }
-
-    /**
-     * Set the object's creation date.
-     *
-     * @param \DateTimeInterface|string|null $created The date/time at object's creation.
-     * @throws InvalidArgumentException If the date/time is invalid.
-     * @return self
-     */
-    public function setCreated($created)
-    {
-        if ($created === null) {
-            $this->created = null;
-            return $this;
-        }
-        if (is_string($created)) {
-            $created = new DateTime($created);
-        }
-        if (!($created instanceof DateTimeInterface)) {
-            throw new InvalidArgumentException(
-                'Invalid "Created" value. Must be a date/time string or a DateTime object.'
-            );
-        }
-        $this->created = $created;
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the object's creation date.
-     *
-     * @return DateTimeInterface|null
-     */
-    public function created()
-    {
-        return $this->created;
-    }
-
-    /**
-     * Set the tags the object belongs to.
-     *
-     * @param ModelInterface[]|array|null $tags The object's tags.
-     * @return self
-     */
-    public function setTags($tags)
-    {
-        $this->tags = $this->parseAsMultiple($tags);
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the tags the object belongs to.
-     *
-     * @return ModelInterface[]|array|null
-     */
-    public function tags()
-    {
-        return $this->tags;
-    }
-
-    /**
-     * Set the object's content.
-     *
-     * @param  string|null $content The content.
-     * @return self
-     */
-    public function setContent($content)
-    {
-        $this->content = $content;
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the object's content.
-     *
-     * @return string|null
-     */
-    public function content()
-    {
-        return $this->content;
-    }
-
-    /**
-     * Set the object's user.
-     *
-     * @param ModelInterface|null
-     * @return self
-     */
-    public function setUser($user)
-    {
-        $this->user = $user;
-        $this->user = $this->castTo($user, User::class);
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the object's user.
+     * Retrieve the post's user.
      *
      * @return ModelInterface|null
      */
     public function user()
     {
+        if ($this->user && !($this->user instanceof User)) {
+            $this->user = $this->castTo($this->user, User::class);
+        }
+
         return $this->user;
     }
 
     /**
-     * Set the object's original JSON structure.
+     * Retrieve the post's message.
      *
-     * @param string $json A JSON structure.
+     * @return string|null
+     */
+    public function text()
+    {
+        return $this->text;
+    }
+
+    /**
+     * Set the post's message.
+     *
+     * @param  string $text The status update.
      * @return self
      */
-    public function setJson($json)
+    public function setText($text)
     {
-        $this->json = $json;
+        $this->text = $text;
 
         return $this;
     }
 
     /**
-     * Retrieve the object's JSON structure.
-     *
-     * @return string
-     */
-    public function json()
-    {
-        return $this->json;
-    }
-
-    /**
-     * Retrieve the object's URL
+     * Retrieve the post's URL on the third-party service.
      *
      * @return string
      */
     public function url()
     {
-        return self::URL_USER . $this->user()->handle() . '/status/' . $this->id();
+        return strtr(self::URL_PATTERN, [
+            '%id'     => $this->id(),
+            '%handle' => $this->user()->handle(),
+        ]);
     }
 
-    // Events
-    // =================================================================================================================
+
+
+    // Utilities
+    // =============================================================================================
 
     /**
-     * Event called before _creating_ the object.
+     * Function that will turn all HTTP URLs, Twitter @usernames, and #tags into links.
+     *
+     * @link   https://davidwalsh.name/linkify-twitter-feed
+     * @param  string $text A tweet's message.
+     * @return string
+     */
+    public function linkifyTweet($text)
+    {
+        // Linkify URLs
+        $text = preg_replace(
+            '/(https?:\/\/\S+)/',
+            '<a target="_blank" href="\1">\1</a>',
+            $text
+        );
+
+        // Linkify twitter users
+        $text = preg_replace(
+            '/(^|\s)@(\w+)/',
+            '\1@<a target="_blank" href="https://twitter.com/\2">\2</a>',
+            $text
+        );
+
+        // Linkify tags
+        $text = preg_replace(
+            '/(^|\s)#(\w+)/',
+            '\1#<a target="_blank" href="https://search.twitter.com/search?q=%23\2">\2</a>',
+            $text
+        );
+
+        return $text;
+    }
+
+
+
+    // Events
+    // =============================================================================================
+
+    /**
+     * Event called before _creating_ the post.
      *
      * @see    \Charcoal\Source\StorableTrait::preSave() For the "create" Event.
      * @return boolean
      */
     public function preSave()
     {
-        $this->setContent($this->linkifyTwitterStatus($this->content()));
+        $this->setText($this->linkifyTweet($this->text()));
 
         return parent::preSave();
     }
 
     /**
-     * Event called before _updating_ the object.
+     * Event called before _updating_ the post.
      *
      * @see    \Charcoal\Source\StorableTrait::postUpdate() For the "update" Event.
      * @see    \Charcoal\Object\RoutableTrait::generateObjectRoute()
@@ -317,7 +172,7 @@ class Tweet extends AbstractModel implements
      */
     public function preUpdate(array $properties = null)
     {
-        $this->setContent($this->linkifyTwitterStatus($this->content()));
+        $this->setText($this->linkifyTwitterStatus($this->text()));
 
         return parent::preUpdate($properties);
     }

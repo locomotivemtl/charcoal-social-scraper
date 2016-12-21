@@ -1,0 +1,42 @@
+{
+    "labels": {
+        "name": "Hashtags",
+        "singular_name": "Hashtag",
+        "view_item": {
+            "en": "View Hashtag",
+            "fr": "Voir le hashtag"
+        },
+        "edit_item": {
+            "en": "Edit Hashtag",
+            "fr": "Modifier le hashtag"
+        },
+        "all_items": {
+            "en": "All Hashtags",
+            "fr": "Toutes les hashtags"
+        },
+        "menu_items": "Hashtags"
+    },
+
+    "properties": {
+        "id": {
+            "type": "id",
+            "mode": "custom",
+            "label": "ID"
+        },
+        "active": {
+            "type": "boolean",
+            "label": {
+                "fr": "Actif",
+                "en": "Active"
+            }
+        },
+        "import_date": {
+            "type": "date-time",
+            "input_type": "charcoal/admin/property/input/readonly",
+            "label": {
+                "en": "Importation Date",
+                "fr": "Date d'importation"
+            }
+        }
+    }
+}
