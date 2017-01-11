@@ -3,15 +3,22 @@
 namespace Charcoal\SocialScraper;
 
 use DateTime;
-use Exception;
+use DateTimeImmutable;
 use RuntimeException;
 use InvalidArgumentException;
 
 // From 'larabros/elogram'
 use Larabros\Elogram\Client as InstagramClient;
+use Larabros\Elogram\Exceptions\Exception as ElogramException;
+use Larabros\Elogram\Exceptions\APINotFoundError;
+use Larabros\Elogram\Exceptions\OAuthRateLimitException;
 
 // From 'charcoal-social-scraper'
-use Charcoal\SocialScraper\Exception\ApiResponseException;
+use Charcoal\SocialScraper\Exception\Exception as ScraperException;
+use Charcoal\SocialScraper\Exception\ApiException;
+use Charcoal\SocialScraper\Exception\HitException;
+use Charcoal\SocialScraper\Exception\NotFoundException;
+use Charcoal\SocialScraper\Exception\RateLimitException;
 use Charcoal\SocialScraper\AbstractScraper;
 use Charcoal\SocialScraper\ScraperInterface;
 
@@ -25,14 +32,20 @@ use Charcoal\Instagram\Object\User;
 class InstagramScraper extends AbstractScraper implements
     ScraperInterface
 {
+    /**
+     * The network key. For logging, actions, and scripts.
+     *
+     * @const string
+     */
     const NETWORK = 'instagram';
 
     /**
-     * The social media network. Used by ScrapeRecord
+     * Data is {@link https://www.instagram.com/developer/sandbox/#api-behavior restricted to sandbox users}
+     * and the 20 most recent media from each sandbox user.
      *
-     * @var string
+     * @const integer
      */
-    private $network = self::NETWORK;
+    const API_SANDBOX_USER_MEDIA_LIMIT = 20;
 
     /**
      * Immutable configuration.
@@ -46,14 +59,13 @@ class InstagramScraper extends AbstractScraper implements
     ];
 
     /**
-     * @param  InstagramClient $client The client used to query the API.
-     * @return self
+     * Retrieve the social media network.
+     *
+     * @return string
      */
-    public function setClient(InstagramClient $client)
+    public function network()
     {
-        $this->client = $client;
-
-        return $this;
+        return self::NETWORK;
     }
 
     /**
@@ -72,6 +84,35 @@ class InstagramScraper extends AbstractScraper implements
         }
 
         return $this->client;
+    }
+
+    /**
+     * Set the Instagram Client.
+     *
+     * @param  InstagramClient $client The client used to query the API.
+     * @return self
+     */
+    public function setClient(InstagramClient $client)
+    {
+        $this->client = $client;
+
+        return $this;
+    }
+
+    /**
+     * Retrieve the default map of aliases to data models.
+     *
+     * @return array
+     */
+    protected function defaultModelMap()
+    {
+        $map = [
+            'media' => Media::class,
+            'tag'   => Tag::class,
+            'user'  => User::class,
+        ];
+
+        return array_merge(parent::defaultModelMap(), $map);
     }
 
     /**
@@ -129,156 +170,239 @@ class InstagramScraper extends AbstractScraper implements
     }
 
     /**
-     * Scrape Instagram API and parse scraped data to create Charcoal models.
+     * Scrape Instagram API for all posts by authorized user.
      *
-     * @param  array $options Scraping options.
-     * @throws Exception If something goes wrong with API calls.
+     * @param  string|array|null $request Either a preset request key or a request config.
+     *     If no $settings are supplied, the default preset request is used.
+     * @param  array|null        $params  Custom scraping options.
      * @return ModelInterface[]|null
      */
-    private function scrapeMedia(array $options = [])
+    public function scrape($request = null, array $params = null)
+    {
+        $params = $this->parseScrapeRequest($request, $params);
+
+        return $this->scrapeMedia($params);
+    }
+
+    /**
+     * Scrape Instagram API and parse scraped data to create Charcoal models.
+     *
+     * @param  array $params Scraping options.
+     * @return ModelInterface[]|null
+     */
+    private function scrapeMedia(array $params = [])
     {
         if ($this->results === null) {
-            // @todo This seems clumsy.
-            $this->setConfig([ 'recordOptions' => $options ]);
+            $time    = new DateTimeImmutable();
+            $results = $this->fetchMediaFromApi($params);
 
-            // Test for recent scrapes
-            $record = $this->fetchRecentScrapeRecord();
-
-            // An non-null ID means a recent record exists
-            if ($record->id() !== null) {
+            if ($results === null) {
                 return $this->results;
             }
-
-            $callApi   = true;
-            $max       = null;
-            $min       = null;
-            $rawMedias = [];
-            $models    = [];
-
-            $defaults  = [
-                'count' => 32
-            ];
-            $immutable = [];
-
-            $filters = array_replace_recursive($defaults, $options['filters'], $immutable);
-
-            // First, attempt fetching Instagram data through pagination
-            try {
-                while ($callApi) {
-                    $apiResponse = $this->client()->{$options['repository']}()->{$options['method']}(
-                        $filters['id'],
-                        $filters['count'],
-                        $min,
-                        $max
-                    );
-
-                    $rawMedias = $apiResponse->get()->merge($rawMedias);
-
-                    if (empty($apiResponse->pagination->next_max_tag_id)) {
-                        $callApi = false;
-                    } else {
-                        $max = $apiResponse->pagination->next_max_tag_id;
-                    }
-                }
-            } catch (Exception $e) {
-                error_log(sprintf(
-                    'Exception [%s] thrown in [%s]: %s',
-                    get_class($e),
-                    get_class($this),
-                    $e->getMessage()
-                ));
-                return $this->results;
-            }
-
-            // Save the scrape record for caching purposes
-            $record->save();
 
             // Loop through all media and store them with Charcoal if they don't already exist
-            foreach ($rawMedias as $media) {
-                $mediaModel = $this->modelFactory()->create(Media::class);
+            $posts = [];
+            foreach ($results as $mediaData) {
+                $mediaModel = $this->createModel('media');
 
-                if (!$mediaModel->source()->tableExists()) {
-                    $mediaModel->source()->createTable();
+                if ($mediaModel->source()->tableExists()) {
+                    $mediaModel->load($mediaData['id']);
                 }
 
-                $mediaModel->load($media['id']);
-
                 if ($mediaModel->id() === null) {
+                    // Save the hashtags if not already saved
                     $tags = [];
+                    if (isset($mediaData['tags'])) {
+                        foreach ($mediaData['tags'] as $tagId) {
+                            $tagModel = $this->createModel('tag');
 
-                    foreach ($media['tags'] as $tag) {
-                        // Save the hashtags if not already saved
-                        $tagModel = $this->modelFactory()->create(Tag::class);
+                            if ($tagModel->source()->tableExists()) {
+                                $tagModel->load($tagId);
+                            }
 
-                        if (!$tagModel->source()->tableExists()) {
-                            $tagModel->source()->createTable();
+                            if ($tagModel->id() === null) {
+                                $tagModel->setData([
+                                    'id' => $tagId
+                                ]);
+                                $tagModel->save();
+                            }
+
+                            $tags[] = $tagModel->id();
                         }
-
-                        $tagModel->load($tag);
-
-                        if ($tagModel->id() === null) {
-                            $tagModel->setData([
-                                'id' => $tag
-                            ]);
-                            $tagModel->save();
-                        }
-
-                        $tags[] = $tagModel->id();
                     }
 
                     // Save the user if not already saved
-                    $userData = $media['user'];
-                    $userModel = $this->modelFactory()->create(User::class);
+                    $userData  = $mediaData['user'];
+                    $userModel = $this->createModel('user');
 
-                    if (!$userModel->source()->tableExists()) {
-                        $userModel->source()->createTable();
+                    if ($userModel->source()->tableExists()) {
+                        $userModel->load($userData['id']);
                     }
-
-                    $userModel->load($userData['id']);
 
                     if ($userModel->id() === null) {
                         $userModel->setData([
-                            'id'             => $userData['id'],
-                            'username'       => $userData['username'],
-                            'fullName'       => $userData['full_name'],
-                            'profilePicture' => $userData['profile_picture']
+                            'id'     => $userData['id'],
+                            'handle' => $userData['username'],
+                            'name'   => $userData['full_name'],
+                            'avatar' => $userData['profile_picture']
                         ]);
                         $userModel->save();
                     }
 
-                    $created = new DateTime('now');
-                    $created->setTimestamp($media['created_time']);
-
                     $mediaModel->setData([
-                        'id'           => $media['id'],
-                        'created_date' => $created,
+                        'id'           => $mediaData['id'],
+                        'created_date' => $time->setTimestamp($mediaData['created_time']),
                         'tags'         => $tags,
-                        'caption'      => $media['caption']['text'],
+                        'caption'      => $mediaData['caption']['text'],
                         'user'         => $userModel->id(),
-                        'image'        => $media['images']['standard_resolution']['url'],
-                        'type'         => $media['type'],
-                        'raw_data'     => json_encode($media)
+                        'image'        => $mediaData['images']['standard_resolution']['url'],
+                        'type'         => $mediaData['type'],
+                        'raw_data'     => json_encode($mediaData)
                     ]);
 
                     $mediaModel->save();
                 }
 
-                $models[] = $mediaModel;
+                $posts[] = $mediaModel;
             }
 
-            $this->setResults($models);
+            $this->setResults($posts);
         }
 
         return $this->results;
     }
 
     /**
-     * Retrieve the social media network.
+     * Fetch media from the Instagram API.
      *
-     * @return string
+     * @param  array|null $params Scraping options.
+     * @param  boolean    $force  Force a new request to the API.
+     *     This will save a new scrape record.
+     * @throws HitException If the Instagram was recently scraped.
+     * @throws NotFoundException If the API endpoint does not exist.
+     * @throws RateLimitException If the too many requests have been made.
+     * @throws OAuthException If the request failed (OAuth).
+     * @throws ApiException If the request failed (API).
+     * @return array|null
      */
-    public function network()
+    private function fetchMediaFromApi(array $params = [], $force = false)
     {
-        return $this->network;
+        if ($params) {
+            // @todo This seems clumsy.
+            $this->mergeConfig([ 'recordOptions' => $params ]);
+        }
+
+        if ($force) {
+            $record = $this->createScrapeRecord();
+        } else {
+            // Test for recent scrapes
+            $record = $this->fetchRecentScrapeRecord();
+
+            // If the record has an ID, that means a recent record exists.
+            if ($record->id() !== null) {
+                $time = $record->logDate();
+                $time->modify('+'.$this->config('recordExpires'));
+                $message = sprintf(
+                    'Expires on %s',
+                    $time->format(DateTime::RSS)
+                );
+
+                throw new HitException($message);
+            }
+        }
+
+        $callApi  = true;
+        $results  = [];
+        $params   = $this->config('recordOptions');
+        $defaults = [
+            'count'  => null,
+            'max_id' => null,
+            'min_id' => null
+        ];
+        $filters = array_replace($defaults, $params['filters']);
+
+        if ($filters['min_id'] === null) {
+            $media = $this->fetchLatestMedia();
+            if ($media) {
+                $filters['min_id'] = $media->id();
+            }
+        }
+
+        $minId = $filters['min_id'];
+        $maxId = $filters['max_id'];
+
+        // First, attempt fetching Instagram data through pagination
+        try {
+            while ($callApi) {
+                $response = $this->client()->{$params['repository']}()->{$params['method']}(
+                    $filters['id'],
+                    $filters['count'],
+                    $minId,
+                    $maxId
+                );
+
+                $results = $response->get()->merge($results);
+
+                if (empty($response->pagination->next_max_tag_id)) {
+                    $callApi = false;
+                } else {
+                    $maxId = $response->pagination->next_max_tag_id;
+                }
+            }
+        } catch (APINotFoundError $e) {
+            $message = sprintf(
+                'Exception [%s]: %s',
+                $class,
+                $e->getMessage()
+            );
+            $record->setStatus($message);
+
+            throw new NotFoundException($message, 0, $e);
+        } catch (OAuthRateLimitException $e) {
+            $message = sprintf(
+                'Exception [%s]: %s',
+                $class,
+                $e->getMessage()
+            );
+            $record->setStatus($message);
+
+            throw new RateLimitException($message, 0, $e);
+        } catch (ElogramException $e) {
+            $class   = get_class($e);
+            $message = sprintf(
+                'Exception [%s]: %s',
+                $class,
+                $e->getMessage()
+            );
+            $record->setStatus($message);
+
+            if (strtolower(substr($class, 0, 5)) === 'oauth') {
+                throw new OAuthException($message, 0, $e);
+            }
+
+            throw new ApiException($message, 0, $e);
+        } finally {
+            // Save the scrape record for caching purposes
+            $record->save();
+        }
+
+        return $results;
+    }
+
+    /**
+     * Attempt to get the latest media object.
+     *
+     * @return ModelInterface|null
+     */
+    public function fetchLatestMedia()
+    {
+        $obj = $this->createModel('media', false);
+        $obj->loadFromQuery('SELECT * FROM `'.$obj->source()->table().'` ORDER BY `created_date` DESC LIMIT 1');
+
+        if ($obj->id()) {
+            return $obj;
+        }
+
+        return null;
     }
 }

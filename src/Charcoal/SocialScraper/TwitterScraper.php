@@ -3,15 +3,20 @@
 namespace Charcoal\SocialScraper;
 
 use DateTime;
-use Exception;
+use DateTimeImmutable;
 use RuntimeException;
 use InvalidArgumentException;
 
 // From 'abraham/twitteroauth'
 use Abraham\TwitterOAuth\TwitterOAuth as TwitterClient;
+use Abraham\TwitterOAuth\TwitterOAuthException;
 
 // From 'charcoal-social-scraper'
-use Charcoal\SocialScraper\Exception\ApiResponseException;
+use Charcoal\SocialScraper\Exception\Exception as ScraperException;
+use Charcoal\SocialScraper\Exception\ApiException;
+use Charcoal\SocialScraper\Exception\HitException;
+use Charcoal\SocialScraper\Exception\NotFoundException;
+use Charcoal\SocialScraper\Exception\RateLimitException;
 use Charcoal\SocialScraper\AbstractScraper;
 use Charcoal\SocialScraper\ScraperInterface;
 
@@ -25,14 +30,20 @@ use Charcoal\Twitter\Object\User;
 class TwitterScraper extends AbstractScraper implements
     ScraperInterface
 {
+    /**
+     * The network key. For logging, actions, and scripts.
+     *
+     * @const string
+     */
     const NETWORK = 'twitter';
 
     /**
-     * The social media network. Used by ScrapeRecord
+     * Data is {@link https://dev.twitter.com/rest/reference/get/statuses/user_timeline restricted to}
+     * 3,200 of a user’s most recent Tweets.
      *
-     * @var string
+     * @const integer
      */
-    private $network = self::NETWORK;
+    const API_TWEET_LIMIT = 200;
 
     /**
      * Immutable configuration.
@@ -46,14 +57,13 @@ class TwitterScraper extends AbstractScraper implements
     ];
 
     /**
-     * @param  TwitterClient $client The client used to query the API.
-     * @return self
+     * Retrieve the social media network.
+     *
+     * @return string
      */
-    public function setClient(TwitterClient $client)
+    public function network()
     {
-        $this->client = $client;
-
-        return $this;
+        return self::NETWORK;
     }
 
     /**
@@ -72,6 +82,35 @@ class TwitterScraper extends AbstractScraper implements
         }
 
         return $this->client;
+    }
+
+    /**
+     * Set the Twitter Client.
+     *
+     * @param  TwitterClient $client The client used to query the API.
+     * @return self
+     */
+    public function setClient(TwitterClient $client)
+    {
+        $this->client = $client;
+
+        return $this;
+    }
+
+    /**
+     * Retrieve the default map of aliases to data models.
+     *
+     * @return array
+     */
+    protected function defaultModelMap()
+    {
+        $map = [
+            'tweet' => Tweet::class,
+            'tag'   => Tag::class,
+            'user'  => User::class,
+        ];
+
+        return array_merge(parent::defaultModelMap(), $map);
     }
 
     /**
@@ -124,7 +163,17 @@ class TwitterScraper extends AbstractScraper implements
     public function scrapeAll(array $filters = [])
     {
         $defaults  = [];
-        $immutable = [ 'screen_name' => $this->config('user_id') ];
+        $immutable = [];
+
+        $screenName = $this->config('screen_name');
+        if ($screenName) {
+            $immutable['screen_name'] = $screenName;
+        } else {
+            $userId = $this->config('user_id');
+            if ($screenName) {
+                $immutable['user_id'] = $userId;
+            }
+        }
 
         return $this->scrapeTweets([
             'repository' => 'statuses',
@@ -134,169 +183,250 @@ class TwitterScraper extends AbstractScraper implements
     }
 
     /**
-     * Scrape Twitter API and parse scraped data to create Charcoal models.
+     * Scrape Twitter API for all posts by authorized user.
      *
-     * @param  array $options Scraping options.
-     * @throws ApiResponseException If something goes wrong with API calls.
+     * @param  string|array|null $request Either a preset request key or a request config.
+     *     If no $settings are supplied, the default preset request is used.
+     * @param  array|null        $params  Custom scraping options.
      * @return ModelInterface[]|null
      */
-    private function scrapeTweets(array $options = [])
+    public function scrape($request = null, array $params = null)
+    {
+        $params = $this->parseScrapeRequest($request, $params);
+
+        return $this->scrapeTweets($params);
+    }
+
+    /**
+     * Scrape Twitter API and parse scraped data to create Charcoal models.
+     *
+     * @param  array $params Scraping options.
+     * @return ModelInterface[]|null
+     */
+    private function scrapeTweets(array $params = [])
     {
         if ($this->results === null) {
-            // @todo This seems clumsy.
-            $this->setConfig([ 'recordOptions' => $options ]);
+            $time    = new DateTimeImmutable();
+            $results = $this->fetchTweetsFromApi($params);
 
-            // Test for recent scrapes
-            $record = $this->fetchRecentScrapeRecord();
-
-            // An non-null ID means a recent record exists
-            if ($record->id() !== null) {
+            if ($results === null) {
                 return $this->results;
             }
-
-            $callApi   = true;
-            $maxId     = null;
-            $rawTweets = [];
-            $models    = [];
-
-            $defaults  = [
-                'count' => 200
-            ];
-            $immutable = [];
-
-            $filters = array_replace_recursive($defaults, $options['filters'], $immutable);
-
-            // First, attempt fetching Twitter data through pagination
-            try {
-                $counter = 0;
-                while ($callApi) {
-                    if ($maxId !== null) {
-                        $filters['max_id'] = $maxId;
-                    }
-
-                    $apiResponse = $this->client()->get($options['repository'].'/'.$options['method'], $filters);
-
-                    if (!empty($apiResponse->errors)) {
-                        $errors = $apiResponse->errors;
-                        $messages = [];
-                        foreach ($errors as $error) {
-                            $messages[] = sprintf('Error: [%s] %s', $error->code, $error->message);
-                        }
-                        throw new ApiResponseException(implode('; ', $messages));
-                    }
-
-                    // Twitter is not consistent with its returned format
-                    if (is_object($apiResponse) && property_exists($apiResponse, 'statuses')) {
-                        $mergeReturn = $apiResponse->statuses;
-                    } else {
-                        $mergeReturn = $apiResponse;
-                    }
-
-                    $rawTweets = array_merge($rawTweets, $mergeReturn);
-
-                    // Stop querying if we're getting less results than the "count" amount.
-                    if (count($apiResponse) < $filters['count']) {
-                        $callApi = false;
-                    } else {
-                        $maxId = (array_pop((array_slice($apiResponse, -1)))->id - 1);
-                    }
-
-                    $counter++;
-                }
-            } catch (Exception $e) {
-                error_log(sprintf(
-                    'Exception [%s] thrown in [%s]: %s',
-                    get_class($e),
-                    get_class($this),
-                    $e->getMessage()
-                ));
-                return $this->results;
-            }
-
-            // Save the scrape record for caching purposes
-            $record->save();
 
             // Loop through all media and store them with Charcoal if they don't already exist
-            foreach ($rawTweets as $tweet) {
-                $tweetModel = $this->modelFactory()->create(Tweet::class);
+            $posts = [];
+            foreach ($results as $tweetData) {
+                $tweetModel = $this->createModel('tweet');
 
-                if (!$tweetModel->source()->tableExists()) {
-                    $tweetModel->source()->createTable();
+                if ($tweetModel->source()->tableExists()) {
+                    $tweetModel->load($tweetData->id);
                 }
 
-                $tweetModel->load($tweet->id);
-
                 if ($tweetModel->id() === null) {
+                    // Save the hashtags if not already saved
                     $tags = [];
+                    if (isset($tweetData->entities->hashtags)) {
+                        foreach ($tweetData->entities->hashtags as $tagData) {
+                            $tagModel = $this->createModel('tag');
 
-                    foreach ($tweet->entities->hashtags as $tag) {
-                        // Save the hashtags if not already saved
-                        $tagModel = $this->modelFactory()->create(Tag::class);
+                            if ($tagModel->source()->tableExists()) {
+                                $tagModel->load($tagData->text);
+                            }
 
-                        if (!$tagModel->source()->tableExists()) {
-                            $tagModel->source()->createTable();
+                            if ($tagModel->id() === null) {
+                                $tagModel->setData([
+                                    'id' => $tagData->text
+                                ]);
+                                $tagModel->save();
+                            }
+
+                            $tags[] = $tagModel->id();
                         }
-
-                        $tagModel->load($tag->text);
-
-                        if ($tagModel->id() === null) {
-                            $tagModel->setData([
-                                'id' => $tag->text
-                            ]);
-                            $tagModel->save();
-                        }
-
-                        $tags[] = $tagModel->id();
                     }
 
                     // Save the user if not already saved
-                    $userData = $tweet->user;
-                    $userModel = $this->modelFactory()->create(User::class);
+                    $userData  = $tweetData->user;
+                    $userModel = $this->createModel('user');
 
-                    if (!$userModel->source()->tableExists()) {
-                        $userModel->source()->createTable();
+                    if ($userModel->source()->tableExists()) {
+                        $userModel->load($userData->id);
                     }
-
-                    $userModel->load($userData->id);
 
                     if ($userModel->id() === null) {
                         $userModel->setData([
-                            'id'             => $userData->id,
-                            'name'           => $userData->name,
-                            'handle'         => $userData->screen_name,
-                            'profilePicture' => $userData->profile_image_url_https
+                            'id'           => $userData->id,
+                            'created_date' => $time->modify($userData->created_at),
+                            'handle'       => $userData->screen_name,
+                            'name'         => $userData->name,
+                            'avatar'       => $userData->profile_image_url_https
                         ]);
                         $userModel->save();
                     }
 
                     $tweetModel->setData([
-                        'id'           => $tweet->id,
-                        'created_data' => $tweet->created_at,
+                        'id'           => $tweetData->id,
+                        'created_date' => $time->modify($tweetData->created_at),
                         'tags'         => $tags,
-                        'content'      => $tweet->text,
+                        'text'         => $tweetData->text,
                         'user'         => $userModel->id(),
-                        'raw_data'     => json_encode((array)$tweet)
+                        'raw_data'     => json_encode((array)$tweetData)
                     ]);
 
                     $tweetModel->save();
                 }
 
-                $models[] = $tweetModel;
+                $posts[] = $tweetModel;
             }
 
-            $this->setResults($models);
+            $this->setResults($posts);
         }
 
         return $this->results;
     }
 
     /**
-     * Retrieve the social media network.
+     * Fetch tweets from the Twitter API.
      *
-     * @return string
+     * @param  array   $params Scraping options.
+     * @param  boolean $force  Force a new request to the API.
+     *     This will save a new scrape record.
+     * @throws HitException If the Twitter was recently scraped.
+     * @throws NotFoundException If the API endpoint does not exist.
+     * @throws RateLimitException If the too many requests have been made.
+     * @throws OAuthException If the request failed (OAuth).
+     * @throws ApiException If the request failed (API).
+     * @return array|null
      */
-    public function network()
+    private function fetchTweetsFromApi(array $params = [], $force = false)
     {
-        return $this->network;
+        if ($params) {
+            // @todo This seems clumsy.
+            $this->mergeConfig([ 'recordOptions' => $params ]);
+        }
+
+        if ($force) {
+            $record = $this->createScrapeRecord();
+        } else {
+            // Test for recent scrapes
+            $record = $this->fetchRecentScrapeRecord();
+
+            // If the record has an ID, that means a recent record exists.
+            if ($record->id() !== null) {
+                $time = $record->logDate();
+                $time->modify('+'.$this->config('recordExpires'));
+                $message = sprintf(
+                    'Expires on %s',
+                    $time->format(DateTime::RSS)
+                );
+
+                throw new HitException($message);
+            }
+        }
+
+        $callApi  = true;
+        $results  = [];
+        $params   = $this->config('recordOptions');
+        $defaults = [
+            'count'    => null,
+            'max_id'   => null,
+            'since_id' => null
+        ];
+        $filters = array_replace($defaults, $params['filters']);
+
+        if ($filters['since_id'] === null) {
+            $tweet = $this->fetchLatestTweet();
+            if ($tweet) {
+                $filters['since_id'] = $tweet->id();
+            }
+        }
+
+        $filters = array_filter($filters, function ($param) {
+            return $param !== null;
+        });
+
+        try {
+            $client = $this->client();
+            while ($callApi) {
+                $response = $client->get($params['repository'].'/'.$params['method'], $filters);
+
+                if (!empty($response->errors)) {
+                    $errors   = $response->errors;
+                    $messages = [];
+                    foreach ($errors as $error) {
+                        $record->setStatus($error->code);
+                        $messages[] = sprintf('[%s] %s', $error->code, $error->message);
+                    }
+                    throw new ApiException(implode("; \n", $messages));
+                }
+
+                // Twitter is not consistent with its returned format
+                if (is_object($response) && property_exists($response, 'statuses')) {
+                    $statuses = $response->statuses;
+                } else {
+                    $statuses = $response;
+                }
+
+                $results = array_merge($results, $statuses);
+
+                // Stop querying if we're getting less results than the "count" amount.
+                $count = count($statuses);
+                if ($count === 0 || (isset($filters['count']) && $count < $filters['count'])) {
+                    $callApi = false;
+                } else {
+                    $last = end($statuses);
+                    if (isset($last->id)) {
+                        $filters['max_id'] = ($last->id - 1);
+                    } else {
+                        $callApi = false;
+                    }
+                }
+            }
+        } catch (TwitterOAuthException $e) {
+            $httpCode = $client->getLastHttpCode();
+            $message  = sprintf(
+                'Exception [%s]: %s',
+                $class,
+                $e->getMessage()
+            );
+            $record->setStatus($record::STATUS_FAIL);
+
+            switch ($httpCode) {
+                case 401:
+                case 403:
+                    throw new OAuthException($message, 0, $e);
+
+                case 404:
+                case 410:
+                    throw new NotFoundException($message, 0, $e);
+
+                case 420:
+                case 429:
+                    throw new RateLimitException($message, 0, $e);
+            }
+
+            throw new ApiException($message, 0, $e);
+        } finally {
+            // Save the scrape record for caching purposes
+            $record->save();
+        }
+
+        return $results;
+    }
+
+    /**
+     * Attempt to get the latest tweet.
+     *
+     * @return ModelInterface|null
+     */
+    public function fetchLatestTweet()
+    {
+        $obj = $this->createModel('tweet', false);
+        $obj->loadFromQuery('SELECT * FROM `'.$obj->source()->table().'` ORDER BY `created_date` DESC LIMIT 1');
+
+        if ($obj->id()) {
+            return $obj;
+        }
+
+        return null;
     }
 }

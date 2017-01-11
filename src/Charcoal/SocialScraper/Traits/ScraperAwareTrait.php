@@ -2,12 +2,12 @@
 
 namespace Charcoal\SocialScraper\Traits;
 
+use ArrayAccess;
 use RuntimeException;
+use InvalidArgumentException;
 
 // From 'charcoal-social-scraper'
 use Charcoal\SocialScraper\ScraperInterface;
-use Charcoal\SocialScraper\InstagramScraper;
-use Charcoal\SocialScraper\TwitterScraper;
 
 /**
  * Common Scraper features for template controllers.
@@ -15,76 +15,70 @@ use Charcoal\SocialScraper\TwitterScraper;
 trait ScraperAwareTrait
 {
     /**
-     * Store the Instagram scraper instance for the current class.
+     * Store the available scrapers.
      *
-     * @var ScraperInterface|null
+     * @var ScraperInterface[]|null
      */
-    protected $instagramScraper;
+    protected $scrapers;
 
     /**
-     * Store the Twitter scraper instance for the current class.
+     * Set the available scrapers.
      *
-     * @var ScraperInterface|null
-     */
-    protected $twitterScraper;
-
-    /**
-     * Set the Instagram scraper.
-     *
-     * @param  InstagramScraper $scraper The Instagram scraper instance.
+     * @param  ScraperInterface[]|ArrayAccess $scrapers The collection of scrapers.
+     * @throws InvalidArgumentException If the given collection is not array-accessible.
      * @return self
      */
-    protected function setInstagramScraper(InstagramScraper $scraper)
+    protected function setScrapers($scrapers)
     {
-        $this->instagramScraper = $scraper;
+        if (!is_array($scrapers) && !($scrapers instanceof ArrayAccess)) {
+            throw new InvalidArgumentException(
+                'The collection of available scrapers must be an array or an instance of ArrayAccess.'
+            );
+        }
+
+        $this->scrapers = $scrapers;
 
         return $this;
     }
 
     /**
-     * Retrieve the Instagram scraper.
+     * Retrieve the available scrapers.
      *
-     * @throws RuntimeException If the Instagram scraper was not previously set.
-     * @return ScraperInterface
+     * @throws RuntimeException If scrapers are not available.
+     * @return ScraperInterface[]
      */
-    public function instagramScraper()
+    public function scrapers()
     {
-        if (!isset($this->instagramScraper)) {
+        if (!isset($this->scrapers)) {
             throw new RuntimeException(
-                sprintf('Instagram Scraper is not defined for "%s"', get_class($this))
+                sprintf('A collection of scrapers is required for "%s"', get_class($this))
             );
         }
 
-        return $this->instagramScraper;
+        return $this->scrapers;
     }
 
     /**
-     * Set the Twitter scraper.
+     * Retrieve an available scraper.
      *
-     * @param  TwitterScraper $scraper The Twitter scraper instance.
-     * @return self
-     */
-    protected function setTwitterScraper(TwitterScraper $scraper)
-    {
-        $this->twitterScraper = $scraper;
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the Twitter scraper.
-     *
-     * @throws RuntimeException If the Twitter scraper was not previously set.
+     * @param  string $key The scraper to retrieve.
+     * @throws RuntimeException If tje are not available.
      * @return ScraperInterface
      */
-    public function twitterScraper()
+    public function scraper($key)
     {
-        if (!isset($this->twitterScraper)) {
-            throw new RuntimeException(
-                sprintf('Twitter Scraper is not defined for "%s"', get_class($this))
-            );
-        }
+        return $this->scrapers()[$key];
+    }
 
-        return $this->twitterScraper;
+    /**
+     * Retrieve the keys for the available scrapers.
+     *
+     * @return array
+     */
+    public function availableScrapers()
+    {
+        $scrapers = $this->scrapers();
+
+        return ($scrapers instanceof \ArrayAccess) ? $scrapers->keys() : array_keys($scrapers);
     }
 }

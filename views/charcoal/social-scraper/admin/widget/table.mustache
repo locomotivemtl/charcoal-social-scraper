@@ -1,0 +1,107 @@
+{{!--
+    Social Scraper \ Table Widget Body
+    ==================================
+
+    @see `charcoal/social-scraper/admin/widget/table`
+--}}
+{{> charcoal/admin/widget/table }}
+{{# addJs }}
+<script>
+$(function(){
+    Charcoal.Admin.manager().ready(function(){
+        var widgetId = '{{ widgetId }}';
+        var tableWidget = this.get_widget(widgetId);
+        var suppressFeedback = false;
+        var syncing = false;
+
+        // Assign the real widget type
+        tableWidget._type = tableWidget.widget_type = 'charcoal/support/admin/widget/table';
+
+        $(document).on(
+            'click.charcoal.socialScraper',
+            '.js-list-social-scraper-import:not([data-toggle])',
+            function (event) {
+                event.preventDefault();
+
+                if (syncing) {
+                    return;
+                }
+
+                syncing = true;
+
+                var $trigger = $(this);
+
+                $trigger.disable().find('.is-spinnable').addClass('u-spin');
+
+                var xhr = $.ajax({
+                    method:   'POST',
+                    url:      $trigger.attr('href'),
+                    dataType: 'json'
+                });
+
+                xhr.then(function (response, textStatus, jqXHR) {
+                    if (!response || !response.success) {
+                        if (response.feedbacks) {
+                            return $.Deferred().reject(jqXHR, textStatus, response.feedbacks);
+                        } else {
+                            return $.Deferred().reject(jqXHR, textStatus, 'An unknown error occurred.');
+                        }
+                    }
+
+                    return $.Deferred().resolve(response, textStatus, jqXHR);
+                });
+
+                xhr.done(function (response/* textStatus, jqXHR */) {
+                    if (response.feedbacks) {
+                        Charcoal.Admin.feedback(response.feedbacks);
+                    }
+
+                    tableWidget.reload(function (/* response */) {
+                        widgetId = this.id();
+                    });
+                });
+
+                xhr.fail(function (jqXHR, textStatus, errorThrown) {
+                    var title = 'Sync Failed';
+                    Charcoal.Admin.feedback().mergeLevels({
+                        warning: {
+                            title: title
+                        },
+                        error: {
+                            title: title
+                        }
+                    });
+
+                    if (jqXHR.responseJSON && jqXHR.responseJSON.feedbacks) {
+                        Charcoal.Admin.feedback(jqXHR.responseJSON.feedbacks);
+                    } else {
+                        var message = '';
+
+                        if (textStatus) {
+                            message += '[' + textStatus + '] ';
+                        }
+
+                        message += errorThrown || 'Unknown Error';
+
+                        Charcoal.Admin.feedback([{
+                            level: 'error',
+                            msg:   message
+                        }]);
+                    }
+                });
+
+                xhr.always(function () {
+                    if (!suppressFeedback) {
+                        Charcoal.Admin.feedback().dispatch();
+                    }
+
+                    syncing = false;
+
+                    $trigger.enable().find('.is-spinnable').removeClass('u-spin');
+                });
+            }
+        );
+    });
+});
+</script>
+{{/ addJs }}

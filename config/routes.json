@@ -1,0 +1,18 @@
+{
+    "routes": {
+        "actions": {
+            "api/1/social-scraper/import/recent": {
+                "ident": "charcoal/social-scraper/action/import",
+                "methods": [ "GET", "POST" ],
+                "action_data": {
+                    "networks": null,
+                    "user_id": null,
+                    "screen_name": null,
+                    "count": null,
+                    "min_id": null,
+                    "max_id": null
+                }
+            }
+        }
+    }
+}
