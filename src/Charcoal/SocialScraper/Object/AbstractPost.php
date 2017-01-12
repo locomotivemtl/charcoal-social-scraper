@@ -172,7 +172,7 @@ abstract class AbstractPost extends CharcoalModel implements
     /**
      * Set the post's URL on the third-party service.
      *
-     * @param  string $url The post's user.
+     * @param  string $url The post's URL.
      * @return self
      */
     public function setUrl($url)

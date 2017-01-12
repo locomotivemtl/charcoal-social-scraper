@@ -80,6 +80,7 @@ class ImportAction extends AbstractScraperAction
             foreach ($scrapers as $ident) {
                 $results = $this->scraper($ident)->scrape($request);
                 if ($results) {
+                    $count = count($results);
                     $this->addFeedback('success', sprintf(
                         'Scraped %d %s from "%s".',
                         $count,
