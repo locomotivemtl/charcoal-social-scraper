@@ -71,6 +71,9 @@
                         "url": "api/1/social-scraper/import/recent?scraper=twitter"
                     }
                 ],
+                "pagination":{
+                    "num_per_page": 50
+                },
                 "properties_options": {
                     "active": {
                         "view_options": {

@@ -87,6 +87,9 @@
                         "url": "api/1/social-scraper/import/recent?scraper=instagram"
                     }
                 ],
+                "pagination":{
+                    "num_per_page": 50
+                },
                 "properties_options": {
                     "active": {
                         "view_options": {
