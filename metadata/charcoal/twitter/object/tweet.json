@@ -29,6 +29,7 @@
         "user": {
             "type": "object",
             "obj_type": "charcoal/twitter/object/user",
+            "input_type": "charcoal/admin/property/input/readonly",
             "pattern": "handle",
             "multiple": false
         },
@@ -127,7 +128,8 @@
                         "show_header": false,
                         "layout": {
                             "structure": [
-                                { "columns": [ 1, 1, 1, 1 ] },
+                                { "columns": [ 1, 1 ] },
+                                { "columns": [ 1, 1 ] },
                                 { "columns": [ 1 ] },
                                 { "columns": [ 1 ] }
                             ]
