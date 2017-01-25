@@ -35,11 +35,32 @@ class Tweet extends AbstractPost implements
     const URL_PATTERN = 'https://www.twitter.com/%handle/status/%id';
 
     /**
+     * The "photo" media type.
+     *
+     * @const string
+     */
+    const ENTITY_TYPE_PHOTO = 'photo';
+
+    /**
      * The text of the tweet (provided by third-party).
      *
      * @var string|null
      */
     protected $text;
+
+    /**
+     * The extracted URLs from the post.
+     *
+     * @var array|null
+     */
+    protected $urls;
+
+    /**
+     * The extracted images from the post.
+     *
+     * @var array|null
+     */
+    protected $images;
 
     /**
      * Inject dependencies from a DI Container.
@@ -104,6 +125,82 @@ class Tweet extends AbstractPost implements
             '%id'     => $this->id(),
             '%handle' => $this->user()->handle(),
         ]);
+    }
+
+    /**
+     * Retrieve the extracted URLs from the post.
+     *
+     * @return array
+     */
+    public function urls()
+    {
+        if ($this->urls === null) {
+            $data = $obj->rawData();
+            $urls = [];
+            if (isset($data['entities']['urls'])) {
+                foreach ($data['entities']['urls'] as $media) {
+                    if (!isset($media['type']) || $media['type'] !== self::ENTITY_TYPE_PHOTO) {
+                        continue;
+                    }
+
+                    if (isset($media['expanded_url'])) {
+                        $urls[] = $media['expanded_url'];
+                    } elseif (isset($media['url'])) {
+                        $urls[] = $media['url'];
+                    }
+                }
+            }
+
+            $this->urls = $urls;
+        }
+
+        return $this->urls;
+    }
+
+    /**
+     * Retrieve the extracted images from the post.
+     *
+     * @return array
+     */
+    public function images()
+    {
+        if ($this->images === null) {
+            $data   = $this->rawData();
+            $images = [];
+            if (isset($data['entities']['media'])) {
+                foreach ($data['entities']['media'] as $media) {
+                    if (!isset($media['type']) || $media['type'] !== self::ENTITY_TYPE_PHOTO) {
+                        continue;
+                    }
+
+                    if (!isset($media['media_url_https'])) {
+                        continue;
+                    }
+
+                    $images[] = $media['media_url_https'];
+                }
+            }
+
+            $this->images = $images;
+        }
+
+        return $this->images;
+    }
+
+    /**
+     * Retrieve the primary image extracted from the post.
+     *
+     * @return string|null
+     */
+    public function image()
+    {
+        $images = $this->images();
+
+        if ($images) {
+            return reset($images);
+        }
+
+        return null;
     }
 
 

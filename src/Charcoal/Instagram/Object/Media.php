@@ -114,7 +114,7 @@ class Media extends AbstractPost implements
     }
 
     /**
-     * Retrieve the URL to the post's image.
+     * Set the URL to the post's image.
      *
      * @param  string $image The main image/video.
      * @return self
