@@ -45,6 +45,13 @@ class Media extends AbstractPost implements
     protected $image;
 
     /**
+     * The media's thumbnail.
+     *
+     * @var string|null
+     */
+    protected $thumbnail;
+
+    /**
      * The main media type. Differentiates between an image and video (provided by third-party).
      *
      * @var string|null
@@ -124,6 +131,27 @@ class Media extends AbstractPost implements
         $this->image = $image;
 
         return $this;
+    }
+
+    /**
+     * Retrieve the URL to the post's thumbnail.
+     *
+     * @return string
+     */
+    public function thumbnail()
+    {
+        if ($this->thumbnail === null) {
+            $data = $this->rawData();
+            if (isset($data['images']['thumbnail']['url'])) {
+                $path = $data['images']['thumbnail']['url'];
+            } else {
+                $path = '';
+            }
+
+            $this->thumbnail = $path;
+        }
+
+        return $this->thumbnail;
     }
 
     /**
