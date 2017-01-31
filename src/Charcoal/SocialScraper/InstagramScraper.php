@@ -69,6 +69,16 @@ class InstagramScraper extends AbstractScraper implements
     }
 
     /**
+     * Retrieve the scraper's name.
+     *
+     * @return string
+     */
+    public function label()
+    {
+        return 'Instagram';
+    }
+
+    /**
      * Retrieve the Instagram Client.
      *
      * @throws RuntimeException If the client was not properly set.

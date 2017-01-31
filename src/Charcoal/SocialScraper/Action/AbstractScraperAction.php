@@ -2,8 +2,6 @@
 
 namespace Charcoal\SocialScraper\Action;
 
-use OutOfBoundsException;
-
 // From PSR-7
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -15,14 +13,15 @@ use Pimple\Container;
 use Charcoal\Admin\AdminAction;
 
 // From 'charcoal-social-scraper'
+use Charcoal\SocialScraper\Traits\ConfigurableTrait;
 use Charcoal\SocialScraper\Traits\ScraperAwareTrait;
-use Charcoal\SocialScraper\ScraperInterface;
 
 /**
  * Basic Scraper Action
  */
 abstract class AbstractScraperAction extends AdminAction
 {
+    use ConfigurableTrait;
     use ScraperAwareTrait;
 
     /**
@@ -40,20 +39,6 @@ abstract class AbstractScraperAction extends AdminAction
     protected $httpResponse;
 
     /**
-     * Importation configuration.
-     *
-     * @var array
-     */
-    protected $config = [];
-
-    /**
-     * Default configuration.
-     *
-     * @var array
-     */
-    protected $defaultConfig = [];
-
-    /**
      * Inject dependencies from a DI Container.
      *
      * @param  Container $container A dependencies container instance.
@@ -64,118 +49,6 @@ abstract class AbstractScraperAction extends AdminAction
         parent::setDependencies($container);
 
         $this->setScrapers($container['charcoal/social/scrapers']);
-    }
-
-    /**
-     * Retrieve the web scraper configset or a given key's value.
-     *
-     * @param  string|null $key     Optional data key to retrieve from the configset.
-     * @param  mixed|null  $default The default value to return if data key does not exist.
-     * @return array
-     */
-    public function config($key = null, $default = null)
-    {
-        if ($key) {
-            if (isset($this->config[$key])) {
-                return $this->config[$key];
-            } else {
-                if (!is_string($default) && is_callable($default)) {
-                    return $default();
-                } else {
-                    return $default;
-                }
-            }
-        }
-
-        return $this->config;
-    }
-
-    /**
-     * Replace the action's configset with the given parameters.
-     *
-     * @param  array $config New config values.
-     * @return self
-     */
-    public function setConfig(array $config)
-    {
-        $this->config = array_replace_recursive(
-            $this->defaultConfig(),
-            $this->parseConfig($config)
-        );
-
-        return $this;
-    }
-
-    /**
-     * Merge given parameters into the action's configset.
-     *
-     * @param  array $config New config values.
-     * @return self
-     */
-    public function mergeConfig(array $config)
-    {
-        $this->config = array_replace_recursive(
-            $this->defaultConfig(),
-            $this->config,
-            $this->parseConfig($config)
-        );
-
-        return $this;
-    }
-
-    /**
-     * Merge Parse parameters for the action's configset.
-     *
-     * @param  array $config Raw config values.
-     * @return array
-     */
-    protected function parseConfig(array $config)
-    {
-        $dataset = [];
-        foreach ($config as $key => $val) {
-            $parser = $this->parser($key);
-            if (is_callable([ $this, $parser ])) {
-                $dataset[$key] = $this->{$parser}($val, $key);
-            } else {
-                $dataset[$key] = $val;
-            }
-        }
-
-        return $dataset;
-    }
-
-    /**
-     * Retrieve the default web scraper configuration.
-     *
-     * @param  string|null $key Optional data key to retrieve from the configset.
-     * @throws OutOfBoundsException If the requested setting does not exist.
-     * @return array
-     */
-    protected function defaultConfig($key = null)
-    {
-        if ($key) {
-            if (isset($this->defaultConfig[$key])) {
-                return $this->defaultConfig[$key];
-            } else {
-                throw new OutOfBoundsException(sprintf(
-                    'The setting "%s" does not exist.',
-                    $key
-                ));
-            }
-        }
-
-        return $this->defaultConfig;
-    }
-
-    /**
-     * Retrieve the parser method for a given key.
-     *
-     * @param  string $key The key to get the parser from.
-     * @return string The parser method name.
-     */
-    protected function parser($key)
-    {
-        return $this->camelize('parse_'.$key);
     }
 
     /**

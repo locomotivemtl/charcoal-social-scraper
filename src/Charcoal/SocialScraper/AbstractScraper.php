@@ -13,6 +13,7 @@ use Charcoal\Factory\FactoryInterface;
 // From 'charcoal-social-scraper'
 use Charcoal\SocialScraper\Exception\MissingOptionsException;
 use Charcoal\SocialScraper\Object\ScrapeRecord;
+use Charcoal\SocialScraper\Traits\ConfigurableTrait;
 
 /**
  * Generic scraping class intended for connection to a social network API
@@ -20,6 +21,8 @@ use Charcoal\SocialScraper\Object\ScrapeRecord;
  */
 abstract class AbstractScraper
 {
+    use ConfigurableTrait;
+
     /**
      * Store the model factory instance.
      *
@@ -56,18 +59,18 @@ abstract class AbstractScraper
     private $defaultRequest = 'default';
 
     /**
-     * Custom configuration.
+     * The resolved settings.
      *
      * @var array
      */
-    private $config = [];
+    protected $resolvedConfig = [];
 
     /**
      * Default configuration.
      *
      * @var array
      */
-    private $defaultConfig = [
+    protected $defaultConfig = [
         'record'         => true,
         'recordExpires'  => '1 hour',
         'recordOptions'  => [
@@ -79,7 +82,7 @@ abstract class AbstractScraper
     ];
 
     /**
-     * Immutable configuration.
+     * The immutable settings.
      *
      * @var array
      */
@@ -137,6 +140,13 @@ abstract class AbstractScraper
 
         $this->setModelFactory($data['model_factory']);
     }
+
+    /**
+     * Retrieve a human-friendly label or description of the scraper.
+     *
+     * @return string|null
+     */
+    abstract public function label();
 
     /**
      * @param  string|array|null $request Either a preset request key or a request config.
@@ -603,107 +613,14 @@ abstract class AbstractScraper
     }
 
     /**
-     * Retrieve the web scraper configset or a given key's value.
+     * Transform a snake_case string to camelCase.
      *
-     * @param  string|null $key     Optional data key to retrieve from the configset.
-     * @param  mixed|null  $default The default value to return if data key does not exist.
-     * @return array
+     * @see    \Charcoal\Config\AbstractEntity::camelize()
+     * @param  string $str The snake_case string to camelize.
+     * @return string The camelcase'd string.
      */
-    public function config($key = null, $default = null)
+    protected function camelize($str)
     {
-        if ($key) {
-            if (isset($this->config[$key])) {
-                return $this->config[$key];
-            } else {
-                if (!is_string($default) && is_callable($default)) {
-                    return $default();
-                } else {
-                    return $default;
-                }
-            }
-        }
-
-        return $this->config;
-    }
-
-    /**
-     * Replace the web scraper configset with the given parameters.
-     *
-     * @param  array $config New config values.
-     * @return self
-     */
-    public function setConfig(array $config)
-    {
-        $this->config = array_replace_recursive(
-            $this->defaultConfig(),
-            $config,
-            $this->immutableConfig()
-        );
-
-        return $this;
-    }
-
-    /**
-     * Merge given parameters into the web scraper configset.
-     *
-     * @param  array $config New config values.
-     * @return self
-     */
-    public function mergeConfig(array $config)
-    {
-        $this->config = array_replace_recursive(
-            $this->defaultConfig(),
-            $this->config,
-            $config,
-            $this->immutableConfig()
-        );
-
-        return $this;
-    }
-
-    /**
-     * Retrieve the default web scraper configuration.
-     *
-     * @param  string|null $key Optional data key to retrieve from the configset.
-     * @throws OutOfBoundsException If the requested setting does not exist.
-     * @return array
-     */
-    protected function defaultConfig($key = null)
-    {
-        if ($key) {
-            if (isset($this->defaultConfig[$key])) {
-                return $this->defaultConfig[$key];
-            } else {
-                throw new OutOfBoundsException(sprintf(
-                    'The setting "%s" does not exist.',
-                    $key
-                ));
-            }
-        }
-
-        return $this->defaultConfig;
-    }
-
-    /**
-     * Retrieve the immutable options of the web scraper.
-     *
-     * @param  string|null $key Optional data key to retrieve from the configset.
-     * @throws OutOfBoundsException If the requested setting does not exist.
-     * @return array
-     */
-    protected function immutableConfig($key = null)
-    {
-        if ($key) {
-            if (isset($this->immutableConfig[$key])) {
-                return $this->immutableConfig[$key];
-            } else {
-                throw new OutOfBoundsException(sprintf(
-                    'The setting "%s" does not exist.',
-                    $key
-                ));
-            }
-        }
-
-        return $this->immutableConfig;
+        return lcfirst(implode('', array_map('ucfirst', explode('_', $str))));
     }
 }
