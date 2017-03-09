@@ -73,6 +73,7 @@ abstract class AbstractScraper
     protected $defaultConfig = [
         'record'         => true,
         'recordExpires'  => '1 hour',
+        'updateRecord'   => false,
         'recordOptions'  => [
             'network'    => '',
             'repository' => '',

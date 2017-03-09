@@ -219,7 +219,7 @@ class InstagramScraper extends AbstractScraper implements
                     $mediaModel->load($mediaData['id']);
                 }
 
-                if ($mediaModel->id() === null) {
+                if ($mediaModel->id() === null || $this->config('updateRecord')) {
                     // Save the hashtags if not already saved
                     $tags = [];
                     if (isset($mediaData['tags'])) {
@@ -259,6 +259,8 @@ class InstagramScraper extends AbstractScraper implements
                         $userModel->save();
                     }
 
+                    $hadId = !!$mediaModel->id();
+
                     $mediaModel->setData([
                         'id'           => $mediaData['id'],
                         'created_date' => $time->setTimestamp($mediaData['created_time']),
@@ -270,7 +272,11 @@ class InstagramScraper extends AbstractScraper implements
                         'raw_data'     => json_encode($mediaData)
                     ]);
 
-                    $mediaModel->save();
+                    if ($hadId) {
+                        $mediaModel->update();
+                    } else {
+                        $mediaModel->save();
+                    }
                 }
 
                 $posts[] = $mediaModel;
