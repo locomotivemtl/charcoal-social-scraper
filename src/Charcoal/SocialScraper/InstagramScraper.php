@@ -54,7 +54,7 @@ class InstagramScraper extends AbstractScraper implements
      */
     protected $immutableConfig = [
         'recordOptions' => [
-            'network'   => self::NETWORK
+            'network' => self::NETWORK
         ]
     ];
 
@@ -151,7 +151,7 @@ class InstagramScraper extends AbstractScraper implements
             );
         }
 
-        $defaults  = [];
+        $defaults = [];
         $immutable = [ 'tag' => $tag ];
 
         return $this->scrapeMedia([
@@ -169,7 +169,7 @@ class InstagramScraper extends AbstractScraper implements
      */
     public function scrapeAll(array $filters = [])
     {
-        $defaults  = [];
+        $defaults = [];
         $immutable = [ 'id' => 'self' ];
 
         return $this->scrapeMedia([
@@ -183,7 +183,7 @@ class InstagramScraper extends AbstractScraper implements
      * Scrape Instagram API for all posts by authorized user.
      *
      * @param  string|array|null $request Either a preset request key or a request config.
-     *     If no $settings are supplied, the default preset request is used.
+     *                                    If no $settings are supplied, the default preset request is used.
      * @param  array|null        $params  Custom scraping options.
      * @return ModelInterface[]|null
      */
@@ -203,7 +203,7 @@ class InstagramScraper extends AbstractScraper implements
     private function scrapeMedia(array $params = [])
     {
         if ($this->results === null) {
-            $time    = new DateTimeImmutable();
+            $time = new DateTimeImmutable();
             $results = $this->fetchMediaFromApi($params);
 
             if ($results === null) {
@@ -242,7 +242,7 @@ class InstagramScraper extends AbstractScraper implements
                     }
 
                     // Save the user if not already saved
-                    $userData  = $mediaData['user'];
+                    $userData = $mediaData['user'];
                     $userModel = $this->createModel('user');
 
                     if ($userModel->source()->tableExists()) {
@@ -293,7 +293,7 @@ class InstagramScraper extends AbstractScraper implements
      *
      * @param  array|null $params Scraping options.
      * @param  boolean    $force  Force a new request to the API.
-     *     This will save a new scrape record.
+     *                            This will save a new scrape record.
      * @throws HitException If the Instagram was recently scraped.
      * @throws NotFoundException If the API endpoint does not exist.
      * @throws RateLimitException If the too many requests have been made.
@@ -327,9 +327,9 @@ class InstagramScraper extends AbstractScraper implements
             }
         }
 
-        $callApi  = true;
-        $results  = [];
-        $params   = $this->config('recordOptions');
+        $callApi = true;
+        $results = [];
+        $params = $this->config('recordOptions');
         $defaults = [
             'count'  => null,
             'max_id' => null,
@@ -384,7 +384,7 @@ class InstagramScraper extends AbstractScraper implements
 
             throw new RateLimitException($message, 0, $e);
         } catch (ElogramException $e) {
-            $class   = get_class($e);
+            $class = get_class($e);
             $message = sprintf(
                 'Exception [%s]: %s',
                 $class,
@@ -413,6 +413,11 @@ class InstagramScraper extends AbstractScraper implements
     public function fetchLatestMedia()
     {
         $obj = $this->createModel('media', false);
+
+        if (!$obj->source()->tableExists()) {
+            $obj->source()->createTable();
+        }
+
         $obj->loadFromQuery('SELECT * FROM `'.$obj->source()->table().'` ORDER BY `created_date` DESC LIMIT 1');
 
         if ($obj->id()) {
