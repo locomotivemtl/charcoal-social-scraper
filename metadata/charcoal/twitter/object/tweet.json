@@ -72,6 +72,12 @@
                         "url": "api/1/social-scraper/import/recent?scraper=twitter"
                     }
                 ],
+                "orders": [
+                    {
+                        "property": "created_date",
+                        "mode": "desc"
+                    }
+                ],
                 "pagination":{
                     "num_per_page": 50
                 },

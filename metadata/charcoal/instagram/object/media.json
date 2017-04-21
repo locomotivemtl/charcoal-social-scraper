@@ -88,6 +88,12 @@
                         "url": "api/1/social-scraper/import/recent?scraper=instagram"
                     }
                 ],
+                "orders": [
+                    {
+                        "property": "created_date",
+                        "mode": "desc"
+                    }
+                ],
                 "pagination":{
                     "num_per_page": 50
                 },
