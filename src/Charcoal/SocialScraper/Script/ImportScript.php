@@ -8,6 +8,10 @@ use Exception as PhpException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
+// From 'charcoal-app'
+use Charcoal\App\Script\CronScriptInterface;
+use Charcoal\App\Script\CronScriptTrait;
+
 // From 'charcoal-social-scraper'
 use Charcoal\SocialScraper\Script\AbstractScraperScript;
 use Charcoal\SocialScraper\Exception\Exception as ScraperException;
@@ -19,8 +23,10 @@ use Charcoal\SocialScraper\Traits\ImportableTrait;
 /**
  * CLI: Import posts from Social Networks
  */
-class ImportScript extends AbstractScraperScript
+class ImportScript extends AbstractScraperScript implements
+    CronScriptInterface
 {
+    use CronScriptTrait;
     use ImportableTrait;
 
     /**
@@ -47,7 +53,9 @@ class ImportScript extends AbstractScraperScript
         unset($request);
 
         try {
+            $this->startLock();
             $this->import();
+            $this->stopLock();
         } catch (PhpException $e) {
             $this->climate()->error($e->getMessage());
         }
@@ -69,13 +77,13 @@ class ImportScript extends AbstractScraperScript
         $dry  = $args->defined('dry_run');
         $tab  = '   ';
 
-        $cli->br();
-        $cli->bold()->underline()->out('Import Latest Posts from Social Networks');
-        $cli->br();
-
         $this->parseArguments();
 
         if (!$this->quiet()) {
+            $cli->br();
+            $cli->bold()->underline()->out('Import Latest Posts from Social Networks');
+            $cli->br();
+
             $sources = $this->config('scrapers');
             $labels  = [];
             foreach ($sources as $ident) {
