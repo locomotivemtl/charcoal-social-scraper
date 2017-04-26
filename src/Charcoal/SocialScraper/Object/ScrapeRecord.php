@@ -376,20 +376,39 @@ class ScrapeRecord extends CharcoalModel
     /**
      * Resolve the origin of the scrape request.
      *
+     * @todo   Use PSR-7 Request, if available, instead of PHP's environment variables.
      * @return string
      */
     public function resolveOrigin()
     {
-        $uri = 'http';
+        $origin = '';
+        if (PHP_SAPI == 'cli') {
+            $argv = $GLOBALS['argv'];
 
-        if (getenv('HTTPS') === 'on') {
-            $uri .= 's';
+            /** Assume its a Charcoal script */
+            if (isset($argv[0])) {
+                if (strpos($argv[0], 'bin/charcoal') !== false) {
+                    $origin = array_slice($argv, 1);
+                    $origin = implode(' ', $origin);
+                } else {
+                    $origin = implode(' ', $argv);
+                }
+            }
+        } else {
+            $host = getenv('HTTP_HOST');
+            if ($host) {
+                $origin = 'http';
+
+                if (getenv('HTTPS') === 'on') {
+                    $origin .= 's';
+                }
+
+                $origin .= '://'.$host;
+            }
+            $origin .= getenv('REQUEST_URI');
         }
 
-        $uri .= '://';
-        $uri .= getenv('HTTP_HOST').getenv('REQUEST_URI');
-
-        return $uri;
+        return $origin;
     }
 
     /**
