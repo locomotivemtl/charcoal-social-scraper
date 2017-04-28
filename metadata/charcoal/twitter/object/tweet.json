@@ -36,7 +36,7 @@
         "tags": {
             "type": "object",
             "input_type": "charcoal/admin/property/input/selectize/tags",
-            "obj_type": "charcoal/instagram/object/tag",
+            "obj_type": "charcoal/twitter/object/tag",
             "pattern": "id"
         },
         "text": {
