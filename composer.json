@@ -18,6 +18,7 @@
         }
     ],
     "minimum-stability": "dev",
+    "prefer-stable": true,
     "extra": {
         "branch-alias": {
             "dev-master": "0.2.x-dev"
@@ -26,8 +27,8 @@
     "require": {
         "php": ">=5.6.0",
         "locomotivemtl/charcoal-core": "~0.2",
-        "mcaskill/charcoal-support": "dev-master",
-        "abraham/twitteroauth": "^0.7.1",
+        "mcaskill/charcoal-support": "~0.2",
+        "abraham/twitteroauth": "^0.7",
         "larabros/elogram": "^1.2"
     },
     "require-dev": {
