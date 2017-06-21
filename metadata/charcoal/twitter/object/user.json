@@ -98,14 +98,6 @@
 
         "dashboards": {
             "admin.edit": {
-                "layout": {
-                    "structure": [
-                        { "columns": [ 1 ] },
-                        { "columns": [ 1 ] },
-                        { "columns": [ 1 ] },
-                        { "columns": [ 1 ] }
-                    ]
-                },
                 "widgets": {
                     "form.content": {
                         "priority": 10,
@@ -113,20 +105,25 @@
                         "form_ident": "default",
                         "group_display_mode": "tab"
                     }
-                }
-            },
-            "admin.table": {
+                },
                 "layout": {
                     "structure": [
                         { "columns": [ 1 ] }
                     ]
-                },
+                }
+            },
+            "admin.table": {
                 "widgets": {
                     "list": {
                         "type": "charcoal/support/admin/widget/table",
                         "collection_ident": "default",
                         "data_sources": [ "request" ]
                     }
+                },
+                "layout": {
+                    "structure": [
+                        { "columns": [ 1 ] }
+                    ]
                 }
             }
         },

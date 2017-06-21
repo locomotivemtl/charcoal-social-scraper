@@ -108,14 +108,6 @@
 
         "dashboards": {
             "admin.edit": {
-                "layout": {
-                    "structure": [
-                        { "columns": [ 1 ] },
-                        { "columns": [ 1 ] },
-                        { "columns": [ 1 ] },
-                        { "columns": [ 1 ] }
-                    ]
-                },
                 "widgets": {
                     "form.content": {
                         "priority": 10,
@@ -125,18 +117,13 @@
                         "group_display_mode": "tab"
                     }
                 },
-                "sidemenu": {
-                    "widget_options": {
-                        "ident": "instagram"
-                    }
-                }
-            },
-            "admin.table": {
                 "layout": {
                     "structure": [
                         { "columns": [ 1 ] }
                     ]
-                },
+                }
+            },
+            "admin.table": {
                 "widgets": {
                     "list": {
                         "type": "charcoal/admin/widget/table",
@@ -145,10 +132,10 @@
                         "data_sources": [ "request" ]
                     }
                 },
-                "sidemenu": {
-                    "widget_options": {
-                        "ident": "instagram"
-                    }
+                "layout": {
+                    "structure": [
+                        { "columns": [ 1 ] }
+                    ]
                 }
             }
         },
