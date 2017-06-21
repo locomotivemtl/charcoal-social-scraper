@@ -31,6 +31,20 @@ class Media extends AbstractPost implements
     use ManufacturableModelCollectionTrait;
 
     /**
+     * The hashtag model.
+     *
+     * @const string
+     */
+    const TAG_MODEL  = Tag::class;
+
+    /**
+     * The user model.
+     *
+     * @const string
+     */
+    const USER_MODEL = User::class;
+
+    /**
      * The post's caption for the media (provided by third-party).
      *
      * @var string|null
@@ -81,10 +95,27 @@ class Media extends AbstractPost implements
     public function user()
     {
         if ($this->user && !($this->user instanceof User)) {
-            $this->user = $this->castTo($this->user, User::class);
+            $this->user = $this->castTo($this->user, static::USER_MODEL);
         }
 
         return $this->user;
+    }
+
+    /**
+     * Set the person who created the post.
+     *
+     * @param  mixed $user A user.
+     * @return self
+     */
+    public function setUser($user)
+    {
+        if (is_array($user)) {
+            $user = $this->modelFactory()->create(static::USER_MODEL)->setData($user);
+        }
+
+        $this->user = $user;
+
+        return $this;
     }
 
     /**
