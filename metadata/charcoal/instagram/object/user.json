@@ -116,6 +116,7 @@
                 "widgets": {
                     "list": {
                         "type": "charcoal/support/admin/widget/table",
+                        "template": "charcoal/admin/widget/table",
                         "collection_ident": "default",
                         "data_sources": [ "request" ]
                     }

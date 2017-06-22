@@ -113,7 +113,6 @@
                         "priority": 10,
                         "type": "charcoal/admin/widget/objectForm",
                         "form_ident": "default",
-                        "obj_type": "charcoal/instagram/object/scrape-record",
                         "group_display_mode": "tab"
                     }
                 },
@@ -127,8 +126,8 @@
                 "widgets": {
                     "list": {
                         "type": "charcoal/admin/widget/table",
+                        "template": "charcoal/admin/widget/table",
                         "collection_ident": "default",
-                        "obj_type": "charcoal/instagram/object/scrape-record",
                         "data_sources": [ "request" ]
                     }
                 },
