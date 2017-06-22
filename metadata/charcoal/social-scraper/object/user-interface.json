@@ -67,7 +67,8 @@
             "label": {
                 "fr": "Profile Name",
                 "en": "Nom de profil"
-            }
+            },
+            "sql_encoding": "utf8mb4"
         },
         "avatar": {
             "type": "image",

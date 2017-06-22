@@ -3,7 +3,8 @@
         "tags": {
             "type": "string",
             "multiple": true,
-            "label": "Hashtags"
+            "label": "Hashtags",
+            "sql_encoding": "utf8mb4"
         }
     }
 }

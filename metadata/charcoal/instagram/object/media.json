@@ -53,11 +53,12 @@
             "label": "Type"
         },
         "caption": {
-            "type": "string",
+            "type": "text",
             "label": {
                 "fr": "Légende",
                 "en": "Caption"
-            }
+            },
+            "sql_encoding": "utf8mb4"
         },
         "image": {
             "type": "image",

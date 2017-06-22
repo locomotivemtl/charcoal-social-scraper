@@ -75,7 +75,8 @@
             "notes": {
                 "fr": "Stored as a JSON object.",
                 "en": "Stocké en tant qu'objet JSON."
-            }
+            },
+            "sql_encoding": "utf8mb4"
         }
     }
 }

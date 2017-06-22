@@ -21,7 +21,8 @@
         "id": {
             "type": "id",
             "mode": "custom",
-            "label": "ID"
+            "label": "ID",
+            "sql_encoding": "utf8mb4"
         },
         "active": {
             "type": "boolean",
