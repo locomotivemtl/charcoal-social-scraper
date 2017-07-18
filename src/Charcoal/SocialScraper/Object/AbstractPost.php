@@ -4,8 +4,14 @@ namespace Charcoal\SocialScraper\Object;
 
 use DateTimeInterface;
 
+// From Pimple
+use Pimple\Container;
+
 // From 'charcoal-core'
 use Charcoal\Model\AbstractModel as CharcoalModel;
+
+// From `charcoal-translation`
+use Charcoal\Translator\TranslatorAwareTrait;
 
 // From 'charcoal-support'
 use Charcoal\Support\Property\ParsableValueTrait;
@@ -20,6 +26,7 @@ abstract class AbstractPost extends CharcoalModel implements
     PostInterface
 {
     use ParsableValueTrait;
+    use TranslatorAwareTrait;
 
     /**
      * Posts are active by default.
@@ -64,6 +71,19 @@ abstract class AbstractPost extends CharcoalModel implements
      * @var array|string|null
      */
     protected $rawData;
+
+    /**
+     * Inject dependencies from a DI Container.
+     *
+     * @param  Container $container A dependencies container instance.
+     * @return void
+     */
+    public function setDependencies(Container $container)
+    {
+        parent::setDependencies($container);
+
+        $this->setTranslator($container['translator']);
+    }
 
     /**
      * Determine if the post is active.
