@@ -254,6 +254,12 @@ class TwitterScraper extends AbstractScraper implements
                         }
                     }
 
+                    // If 'trim_user' is set to true, we only receive the user ID from the API, and
+                    // cannot create proper a user model.
+                    $isUserTrimmed = isset($params['filters']['trim_user']) ?
+                        $params['filters']['trim_user'] :
+                        false;
+
                     // Save the user if not already saved
                     $userData  = $tweetData->user;
                     $userModel = $this->createModel('user');
@@ -263,13 +269,17 @@ class TwitterScraper extends AbstractScraper implements
                     }
 
                     if ($userModel->id() === null) {
-                        $userModel->setData([
-                            'id'           => $userData->id,
-                            'created_date' => $time->modify($userData->created_at),
-                            'handle'       => $userData->screen_name,
-                            'name'         => $userData->name,
-                            'avatar'       => $userData->profile_image_url_https
-                        ]);
+                        $userModel->setData(
+                            ($isUserTrimmed) ? [
+                                'id' => $userData->id,
+                            ] : [
+                                'id'           => $userData->id,
+                                'created_date' => $time->modify($userData->created_at),
+                                'handle'       => $userData->screen_name,
+                                'name'         => $userData->name,
+                                'avatar'       => $userData->profile_image_url_https
+                            ]
+                        );
                         $userModel->save();
                     }
 

@@ -251,21 +251,21 @@ class Tweet extends AbstractPost implements
         // Linkify URLs
         $text = preg_replace(
             '/(https?:\/\/\S+)/',
-            '<a target="_blank" href="\1">\1</a>',
+            '<a target="_blank" rel="noopener noreferrer" href="\1">\1</a>',
             $text
         );
 
         // Linkify twitter users
         $text = preg_replace(
             '/(^|\s)@(\w+)/',
-            '\1@<a target="_blank" href="https://twitter.com/\2">\2</a>',
+            '\1@<a target="_blank" rel="noopener noreferrer" href="https://twitter.com/\2">\2</a>',
             $text
         );
 
         // Linkify tags
         $text = preg_replace(
             '/(^|\s)#(\w+)/',
-            '\1#<a target="_blank" href="https://search.twitter.com/search?q=%23\2">\2</a>',
+            '\1#<a target="_blank" rel="noopener noreferrer" href="https://search.twitter.com/search?q=%23\2">\2</a>',
             $text
         );
 
