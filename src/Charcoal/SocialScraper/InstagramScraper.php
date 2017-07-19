@@ -202,90 +202,86 @@ class InstagramScraper extends AbstractScraper implements
      */
     private function scrapeMedia(array $params = [])
     {
-        if ($this->results === null) {
-            $time = new DateTimeImmutable();
-            $results = $this->fetchMediaFromApi($params);
+        $time = new DateTimeImmutable();
+        $results = $this->fetchMediaFromApi($params);
 
-            if ($results === null) {
-                return $this->results;
-            }
-
-            // Loop through all media and store them with Charcoal if they don't already exist
-            $posts = [];
-            foreach ($results as $mediaData) {
-                $mediaModel = $this->createModel('media');
-
-                if ($mediaModel->source()->tableExists()) {
-                    $mediaModel->load($mediaData['id']);
-                }
-
-                if ($mediaModel->id() === null || $this->config('updateRecord')) {
-                    // Save the hashtags if not already saved
-                    $tags = [];
-                    if (isset($mediaData['tags'])) {
-                        foreach ($mediaData['tags'] as $tagId) {
-                            $tagModel = $this->createModel('tag');
-
-                            if ($tagModel->source()->tableExists()) {
-                                $tagModel->load($tagId);
-                            }
-
-                            if ($tagModel->id() === null) {
-                                $tagModel->setData([
-                                    'id' => $tagId
-                                ]);
-                                $tagModel->save();
-                            }
-
-                            $tags[] = $tagModel->id();
-                        }
-                    }
-
-                    // Save the user if not already saved
-                    $userData = $mediaData['user'];
-                    $userModel = $this->createModel('user');
-
-                    if ($userModel->source()->tableExists()) {
-                        $userModel->load($userData['id']);
-                    }
-
-                    if ($userModel->id() === null) {
-                        $userModel->setData([
-                            'id'     => $userData['id'],
-                            'handle' => $userData['username'],
-                            'name'   => $userData['full_name'],
-                            'avatar' => $userData['profile_picture']
-                        ]);
-                        $userModel->save();
-                    }
-
-                    $hadId = !!$mediaModel->id();
-
-                    $mediaModel->setData([
-                        'id'           => $mediaData['id'],
-                        'created_date' => $time->setTimestamp($mediaData['created_time']),
-                        'tags'         => $tags,
-                        'caption'      => $mediaData['caption']['text'],
-                        'user'         => $userModel->id(),
-                        'image'        => $mediaData['images']['standard_resolution']['url'],
-                        'type'         => $mediaData['type'],
-                        'raw_data'     => json_encode($mediaData)
-                    ]);
-
-                    if ($hadId) {
-                        $mediaModel->update();
-                    } else {
-                        $mediaModel->save();
-                    }
-                }
-
-                $posts[] = $mediaModel;
-            }
-
-            $this->setResults($posts);
+        if ($results === null) {
+            return $results;
         }
 
-        return $this->results;
+        // Loop through all media and store them with Charcoal if they don't already exist
+        $posts = [];
+        foreach ($results as $mediaData) {
+            $mediaModel = $this->createModel('media');
+
+            if ($mediaModel->source()->tableExists()) {
+                $mediaModel->load($mediaData['id']);
+            }
+
+            if ($mediaModel->id() === null || $this->config('updateRecord')) {
+                // Save the hashtags if not already saved
+                $tags = [];
+                if (isset($mediaData['tags'])) {
+                    foreach ($mediaData['tags'] as $tagId) {
+                        $tagModel = $this->createModel('tag');
+
+                        if ($tagModel->source()->tableExists()) {
+                            $tagModel->load($tagId);
+                        }
+
+                        if ($tagModel->id() === null) {
+                            $tagModel->setData([
+                                'id' => $tagId
+                            ]);
+                            $tagModel->save();
+                        }
+
+                        $tags[] = $tagModel->id();
+                    }
+                }
+
+                // Save the user if not already saved
+                $userData = $mediaData['user'];
+                $userModel = $this->createModel('user');
+
+                if ($userModel->source()->tableExists()) {
+                    $userModel->load($userData['id']);
+                }
+
+                if ($userModel->id() === null) {
+                    $userModel->setData([
+                        'id'     => $userData['id'],
+                        'handle' => $userData['username'],
+                        'name'   => $userData['full_name'],
+                        'avatar' => $userData['profile_picture']
+                    ]);
+                    $userModel->save();
+                }
+
+                $hadId = !!$mediaModel->id();
+
+                $mediaModel->setData([
+                    'id'           => $mediaData['id'],
+                    'created_date' => $time->setTimestamp($mediaData['created_time']),
+                    'tags'         => $tags,
+                    'caption'      => $mediaData['caption']['text'],
+                    'user'         => $userModel->id(),
+                    'image'        => $mediaData['images']['standard_resolution']['url'],
+                    'type'         => $mediaData['type'],
+                    'raw_data'     => json_encode($mediaData)
+                ]);
+
+                if ($hadId) {
+                    $mediaModel->update();
+                } else {
+                    $mediaModel->save();
+                }
+            }
+
+            $posts[] = $mediaModel;
+        }
+
+        return $posts;
     }
 
     /**

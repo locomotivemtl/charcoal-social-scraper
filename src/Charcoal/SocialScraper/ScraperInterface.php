@@ -20,11 +20,4 @@ interface ScraperInterface
      * @return string
      */
     public function network();
-
-    /**
-     * Retrieve results.
-     *
-     * @return ModelInterface[]|array|null
-     */
-    public function results();
 }

@@ -215,93 +215,89 @@ class TwitterScraper extends AbstractScraper implements
      */
     private function scrapeTweets(array $params = [])
     {
-        if ($this->results === null) {
-            $time    = new DateTimeImmutable();
-            $results = $this->fetchTweetsFromApi($params);
+        $time    = new DateTimeImmutable();
+        $results = $this->fetchTweetsFromApi($params);
 
-            if ($results === null) {
-                return $this->results;
-            }
-
-            // Loop through all media and store them with Charcoal if they don't already exist
-            $posts = [];
-            foreach ($results as $tweetData) {
-                $tweetModel = $this->createModel('tweet');
-
-                if ($tweetModel->source()->tableExists()) {
-                    $tweetModel->load($tweetData->id);
-                }
-
-                if ($tweetModel->id() === null) {
-                    // Save the hashtags if not already saved
-                    $tags = [];
-                    if (isset($tweetData->entities->hashtags)) {
-                        foreach ($tweetData->entities->hashtags as $tagData) {
-                            $tagModel = $this->createModel('tag');
-
-                            if ($tagModel->source()->tableExists()) {
-                                $tagModel->load($tagData->text);
-                            }
-
-                            if ($tagModel->id() === null) {
-                                $tagModel->setData([
-                                    'id' => $tagData->text
-                                ]);
-                                $tagModel->save();
-                            }
-
-                            $tags[] = $tagModel->id();
-                        }
-                    }
-
-                    // If 'trim_user' is set to true, we only receive the user ID from the API, and
-                    // cannot create proper a user model.
-                    $isUserTrimmed = isset($params['filters']['trim_user']) ?
-                        $params['filters']['trim_user'] :
-                        false;
-
-                    // Save the user if not already saved
-                    $userData  = $tweetData->user;
-                    $userModel = $this->createModel('user');
-
-                    if ($userModel->source()->tableExists()) {
-                        $userModel->load($userData->id);
-                    }
-
-                    if ($userModel->id() === null) {
-                        $userModel->setData(
-                            ($isUserTrimmed) ? [
-                                'id' => $userData->id,
-                            ] : [
-                                'id'           => $userData->id,
-                                'created_date' => $time->modify($userData->created_at),
-                                'handle'       => $userData->screen_name,
-                                'name'         => $userData->name,
-                                'avatar'       => $userData->profile_image_url_https
-                            ]
-                        );
-                        $userModel->save();
-                    }
-
-                    $tweetModel->setData([
-                        'id'           => $tweetData->id,
-                        'created_date' => $time->modify($tweetData->created_at),
-                        'tags'         => $tags,
-                        'text'         => $tweetData->text,
-                        'user'         => $userModel->id(),
-                        'raw_data'     => json_encode((array)$tweetData)
-                    ]);
-
-                    $tweetModel->save();
-                }
-
-                $posts[] = $tweetModel;
-            }
-
-            $this->setResults($posts);
+        if ($results === null) {
+            return $result;
         }
 
-        return $this->results;
+        // Loop through all media and store them with Charcoal if they don't already exist
+        $posts = [];
+        foreach ($results as $tweetData) {
+            $tweetModel = $this->createModel('tweet');
+
+            if ($tweetModel->source()->tableExists()) {
+                $tweetModel->load($tweetData->id);
+            }
+
+            if ($tweetModel->id() === null) {
+                // Save the hashtags if not already saved
+                $tags = [];
+                if (isset($tweetData->entities->hashtags)) {
+                    foreach ($tweetData->entities->hashtags as $tagData) {
+                        $tagModel = $this->createModel('tag');
+
+                        if ($tagModel->source()->tableExists()) {
+                            $tagModel->load($tagData->text);
+                        }
+
+                        if ($tagModel->id() === null) {
+                            $tagModel->setData([
+                                'id' => $tagData->text
+                            ]);
+                            $tagModel->save();
+                        }
+
+                        $tags[] = $tagModel->id();
+                    }
+                }
+
+                // If 'trim_user' is set to true, we only receive the user ID from the API, and
+                // cannot create proper a user model.
+                $isUserTrimmed = isset($params['filters']['trim_user']) ?
+                    $params['filters']['trim_user'] :
+                    false;
+
+                // Save the user if not already saved
+                $userData  = $tweetData->user;
+                $userModel = $this->createModel('user');
+
+                if ($userModel->source()->tableExists()) {
+                    $userModel->load($userData->id);
+                }
+
+                if ($userModel->id() === null) {
+                    $userModel->setData(
+                        ($isUserTrimmed) ? [
+                            'id' => $userData->id,
+                        ] : [
+                            'id'           => $userData->id,
+                            'created_date' => $time->modify($userData->created_at),
+                            'handle'       => $userData->screen_name,
+                            'name'         => $userData->name,
+                            'avatar'       => $userData->profile_image_url_https
+                        ]
+                    );
+                    $userModel->save();
+                }
+
+                $tweetModel->setData([
+                    'id'           => $tweetData->id,
+                    'created_date' => $time->modify($tweetData->created_at),
+                    'tags'         => $tags,
+                    'text'         => $tweetData->text,
+                    'user'         => $userModel->id(),
+                    'raw_data'     => json_encode((array)$tweetData)
+                ]);
+
+                $tweetModel->save();
+            }
+
+            $posts[] = $tweetModel;
+        }
+
+        return $posts;
     }
 
     /**

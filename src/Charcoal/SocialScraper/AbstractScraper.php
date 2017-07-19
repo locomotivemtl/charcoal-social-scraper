@@ -38,13 +38,6 @@ abstract class AbstractScraper
     protected $client;
 
     /**
-     * Results of a scrape.
-     *
-     * @var array
-     */
-    protected $results;
-
-    /**
      * Preset scrape requests.
      *
      * @var array
@@ -252,29 +245,6 @@ abstract class AbstractScraper
     public function recordExpiration()
     {
         return new DateTime('now - '.$this->config('recordExpires'));
-    }
-
-    /**
-     * Retrieve results.
-     *
-     * @return ModelInterface[]|array|null
-     */
-    public function results()
-    {
-        return $this->results;
-    }
-
-    /**
-     * Set results.
-     *
-     * @param  ModelInterface[]|array $results One or more objects.
-     * @return self
-     */
-    public function setResults($results)
-    {
-        $this->results = $results;
-
-        return $this;
     }
 
     /**
