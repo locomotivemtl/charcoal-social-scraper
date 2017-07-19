@@ -152,7 +152,7 @@ class InstagramScraper extends AbstractScraper implements
         }
 
         $defaults = [];
-        $immutable = [ 'tag' => $tag ];
+        $immutable = [ 'id' => $tag ];
 
         return $this->scrapeMedia([
             'repository' => 'tags',
