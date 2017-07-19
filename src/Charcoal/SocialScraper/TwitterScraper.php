@@ -153,7 +153,7 @@ class TwitterScraper extends AbstractScraper implements
             'include_entities' => true
         ];
         $immutable = [
-            'q' => sprintf('#%s AND from:%s', $tag, $this->config('user_id')),
+            'q' => sprintf('#%s AND from:%s', $tag, $this->config('screen_name')),
         ];
 
         return $this->scrapeTweets([
