@@ -333,7 +333,9 @@ class InstagramScraper extends AbstractScraper implements
         ];
         $filters = array_replace($defaults, $params['filters']);
 
-        if ($filters['min_id'] === null) {
+        // The 'Tags' repository does not support media ID as a cursor. Rather, it implements a unique ID
+        // generated on each query.
+        if ($filters['min_id'] === null && $params['repository'] !== 'tags') {
             $media = $this->fetchLatestMedia();
             if ($media) {
                 $filters['min_id'] = $media->id();
