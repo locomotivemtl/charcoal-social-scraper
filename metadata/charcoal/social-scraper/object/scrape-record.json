@@ -13,7 +13,7 @@
             "mode": "uniqid"
         },
         "ident": {
-            "type": "string",
+            "type": "text",
             "readonly": true
         },
         "network": {
