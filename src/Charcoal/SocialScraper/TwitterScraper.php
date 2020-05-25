@@ -150,7 +150,8 @@ class TwitterScraper extends AbstractScraper implements
         }
 
         $defaults  = [
-            'include_entities' => true
+            'include_entities' => true,
+            'tweet_mode'       => 'extended',
         ];
         $immutable = [
             'q' => sprintf('#%s AND from:%s', $tag, $this->config('screen_name')),
@@ -172,7 +173,9 @@ class TwitterScraper extends AbstractScraper implements
      */
     public function scrapeAll(array $filters = [])
     {
-        $defaults  = [];
+        $defaults  = [
+            'tweet_mode' => 'extended',
+        ];
         $immutable = [];
 
         $screenName = $this->config('screen_name');
@@ -286,7 +289,7 @@ class TwitterScraper extends AbstractScraper implements
                     'id'           => $tweetData->id,
                     'created_date' => $time->modify($tweetData->created_at),
                     'tags'         => $tags,
-                    'text'         => $tweetData->text,
+                    'text'         => $tweetData->full_text,
                     'user'         => $userModel->id(),
                     'raw_data'     => json_encode((array)$tweetData)
                 ]);
